@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#e94560">
+  <meta name="description" content="FlyHighManarang - Animal Feed & Veterinary Medicine Shop Management">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FlyHigh">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <title>FlyHighManarang</title>
+  <!-- Inline icon generation for PWA -->
+  <script>
+    // Generate PWA icons dynamically on first load
+    (function() {
+      if (localStorage.getItem('iconsGenerated')) return;
+
+      const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      sizes.forEach(size => {
+        canvas.width = size;
+        canvas.height = size;
+
+        // Background gradient
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#e94560');
+        gradient.addColorStop(1, '#c73e54');
+
+        // Rounded rect
+        const radius = size * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(size - radius, 0);
+        ctx.quadraticCurveTo(size, 0, size, radius);
+        ctx.lineTo(size, size - radius);
+        ctx.quadraticCurveTo(size, size, size - radius, size);
+        ctx.lineTo(radius, size);
+        ctx.quadraticCurveTo(0, size, 0, size - radius);
+        ctx.lineTo(0, radius);
+        ctx.quadraticCurveTo(0, 0, radius, 0);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Chicken emoji
+        ctx.font = `${size * 0.45}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('FH', size / 2, size * 0.4);
+
+        // FH text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${size * 0.2}px Arial`;
+        ctx.fillText('FH', size / 2, size * 0.78);
+      });
+
+      localStorage.setItem('iconsGenerated', 'true');
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="light-mode">
+  <div id="app">
+    <!-- Navigation Sidebar -->
+    <nav id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+          </span>
+          <span class="logo-text">FlyHighManarang</span>
+        </div>
+        <button class="sidebar-close" onclick="toggleSidebar()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <ul class="nav-menu">
+        <li><a href="#" class="nav-item active" data-screen="dashboard">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </span> Dashboard</a></li>
+        <li><a href="#" class="nav-item" data-screen="pos">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+          </span> POS</a></li>
+        <li><a href="#" class="nav-item" data-screen="display">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </span> Display</a></li>
+        <li><a href="#" class="nav-item" data-screen="inventory">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </span> Inventory</a></li>
+        <li><a href="#" class="nav-item" data-screen="products">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </span> Products</a></li>
+        <li><a href="#" class="nav-item" data-screen="ava-ai">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path>
+              <circle cx="7.5" cy="14.5" r="1.5"></circle>
+              <circle cx="16.5" cy="14.5" r="1.5"></circle>
+            </svg>
+          </span> Ava AI</a></li>
+        <li><a href="#" class="nav-item" data-screen="settings">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </span> Settings</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <span class="user-avatar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </span>
+          <div class="user-details">
+            <span class="user-name">Shop Owner</span>
+            <span class="user-role">Administrator</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <h1 id="page-title">Dashboard</h1>
+        <div class="header-actions">
+          <span class="current-time" id="current-time"></span>
+          <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">MODE</button>
+        </div>
+      </header>
+
+      <!-- Dashboard Screen -->
+      <section id="dashboard-screen" class="screen active">
+        <div class="summary-cards">
+          <div class="card card-primary">
+            <div class="card-icon">STORE</div>
+            <div class="card-content">
+              <h3 id="store-name-display">FlyHighManarang</h3>
+              <p>Store Name</p>
+            </div>
+          </div>
+          <div class="card card-success">
+            <div class="card-icon">SALES</div>
+            <div class="card-content">
+              <h3>P<span id="total-sales-today">15,800</span></h3>
+              <p>Today's Sales</p>
+            </div>
+          </div>
+          <div class="card card-info">
+            <div class="card-icon">ITEMS</div>
+            <div class="card-content">
+              <h3 id="total-products">62</h3>
+              <p>Total Products</p>
+            </div>
+          </div>
+          <div class="card card-warning">
+            <div class="card-icon">ALERT</div>
+            <div class="card-content">
+              <h3 id="low-stock-items">4</h3>
+              <p>Low Stock Items</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales Overview Section -->
+        <div class="sales-overview">
+          <h2>Sales Overview</h2>
+          <div class="sales-overview-cards">
+            <!-- Monthly Sales -->
+            <div class="sales-card monthly-sales">
+              <div class="sales-card-header">
+                <h3>Monthly Sales</h3>
+                <select id="month-selector" onchange="updateMonthlySales()">
+                  <!-- Populated dynamically by JavaScript -->
+                </select>
+              </div>
+              <div class="sales-amount">
+                <span class="currency">P</span>
+                <span id="monthly-sales-amount">0</span>
+              </div>
+              <div class="sales-comparison">
+                <span class="positive">-</span> vs last month
+              </div>
+            </div>
+
+            <!-- Yearly Sales -->
+            <div class="sales-card yearly-sales">
+              <div class="sales-card-header">
+                <h3>Yearly Sales</h3>
+                <span class="year-label">-</span>
+              </div>
+              <div class="sales-amount">
+                <span class="currency">P</span>
+                <span id="yearly-sales-amount">0</span>
+              </div>
+              <div class="sales-comparison">
+                <span class="positive">-</span> vs last year
+              </div>
+            </div>
+
+            <!-- All-Time Sales -->
+            <div class="sales-card alltime-sales">
+              <div class="sales-card-header">
+                <h3>All-Time Sales</h3>
+                <span class="year-label">-</span>
+              </div>
+              <div class="sales-amount">
+                <span class="currency">P</span>
+                <span id="alltime-sales-amount">0</span>
+              </div>
+              <div class="sales-info">
+                Total Transactions: -
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recent-activity">
+          <h2>Recent Sales</h2>
+          <div class="activity-list">
+            <div class="activity-item">
+              <span class="activity-icon">RCPT</span>
+              <div class="activity-details">
+                <strong>Sale #1024</strong>
+                <p>B-Meg Broiler Starter (3 Sacks) - P3,750</p>
+              </div>
+              <span class="activity-time">2 mins ago</span>
+            </div>
+            <div class="activity-item">
+              <span class="activity-icon">RCPT</span>
+              <div class="activity-details">
+                <strong>Sale #1023</strong>
+                <p>Vetracin Gold Injectable (5 pcs) - P925</p>
+              </div>
+              <span class="activity-time">15 mins ago</span>
+            </div>
+            <div class="activity-item">
+              <span class="activity-icon">RCPT</span>
+              <div class="activity-details">
+                <strong>Sale #1022</strong>
+                <p>Vitarich Hog Grower (2 kg) - P110</p>
+              </div>
+              <span class="activity-time">32 mins ago</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- POS Screen -->
+      <section id="pos-screen" class="screen">
+        <div class="pos-container">
+          <!-- Product Selection -->
+          <div class="pos-products">
+            <div class="pos-section-header">
+              <h2>Products</h2>
+              <div class="category-filter">
+                <button class="filter-btn active" onclick="filterProducts('all')">All</button>
+                <button class="filter-btn" onclick="filterProducts('Feed')">Feeds</button>
+                <button class="filter-btn" onclick="filterProducts('Medicine')">Medicines</button>
+                <button class="filter-btn" onclick="filterProducts('Vitamins')">Vitamins</button>
+                <button class="filter-btn" onclick="filterProducts('Accessories')">Accessories</button>
+                <button class="filter-btn" onclick="filterProducts('Grooming')">Grooming</button>
+                <button class="filter-btn" onclick="filterProducts('Treats')">Treats</button>
+              </div>
+            </div>
+            <div class="product-grid" id="product-grid">
+              <!-- Products loaded via JS -->
+            </div>
+          </div>
+
+          <!-- Cart Section -->
+          <div class="pos-cart">
+            <div class="cart-header">
+              <h2>Cart</h2>
+              <button class="btn-clear" onclick="clearCart()">Clear All</button>
+            </div>
+            <div class="cart-items" id="cart-items">
+              <div class="empty-cart">
+                <span class="empty-cart-icon">CART</span>
+                <p>Cart is empty</p>
+              </div>
+            </div>
+            <div class="cart-summary">
+              <div class="summary-row">
+                <span>Subtotal:</span>
+                <span id="cart-subtotal">₱0.00</span>
+              </div>
+              <div class="summary-row total">
+                <span>Total:</span>
+                <span id="cart-total">₱0.00</span>
+              </div>
+              <div class="payment-method">
+                <label>Payment Method:</label>
+                <select id="payment-method">
+                  <option value="Cash">Cash</option>
+                  <option value="GCash">GCash</option>
+                  <option value="Maya">Maya</option>
+                </select>
+              </div>
+              <button class="btn-checkout" onclick="checkout()" id="btn-checkout" disabled>
+                Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Display Screen -->
+      <section id="display-screen" class="screen">
+        <div class="screen-header">
+          <h2>Display Management</h2>
+          <button class="btn-primary" onclick="openAddDisplayModal()">+ Add Display</button>
+        </div>
+        <p class="display-description">Manage opened sacks for retail kg sales. When you sell by kg in POS, stock is deducted from display.</p>
+        <div class="display-grid" id="display-grid">
+          <!-- Display items loaded via JS -->
+        </div>
+      </section>
+
+      <!-- Inventory Screen -->
+      <section id="inventory-screen" class="screen">
+        <div class="screen-header">
+          <h2>Inventory Management</h2>
+          <div class="header-actions">
+            <input type="text" class="search-input" placeholder="Search inventory..." id="inventory-search" oninput="searchInventory()">
+          </div>
+        </div>
+        <div class="inventory-filter">
+          <button class="filter-btn active" onclick="filterInventory('all')">All</button>
+          <button class="filter-btn" onclick="filterInventory('Feed')">Feeds</button>
+          <button class="filter-btn" onclick="filterInventory('Medicine')">Medicines</button>
+          <button class="filter-btn" onclick="filterInventory('Vitamins')">Vitamins</button>
+          <button class="filter-btn" onclick="filterInventory('Accessories')">Accessories</button>
+          <button class="filter-btn" onclick="filterInventory('Grooming')">Grooming</button>
+          <button class="filter-btn" onclick="filterInventory('Treats')">Treats</button>
+          <button class="filter-btn low-stock-filter" onclick="filterInventory('lowstock')">Low Stock</button>
+        </div>
+        <div class="inventory-grid" id="inventory-grid">
+          <!-- Inventory items loaded via JS -->
+        </div>
+      </section>
+
+      <!-- Products Screen -->
+      <section id="products-screen" class="screen">
+        <div class="screen-header">
+          <h2>Product Management</h2>
+          <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
+        </div>
+        <div class="products-filter">
+          <button class="filter-btn active" onclick="filterProductsTable('all')">All</button>
+          <button class="filter-btn" onclick="filterProductsTable('Feed')">Feeds</button>
+          <button class="filter-btn" onclick="filterProductsTable('Medicine')">Medicines</button>
+          <button class="filter-btn" onclick="filterProductsTable('Vitamins')">Vitamins</button>
+          <button class="filter-btn" onclick="filterProductsTable('Accessories')">Accessories</button>
+          <button class="filter-btn" onclick="filterProductsTable('Grooming')">Grooming</button>
+          <button class="filter-btn" onclick="filterProductsTable('Treats')">Treats</button>
+        </div>
+        <div class="products-table-container">
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Brand</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-table-body">
+              <!-- Products loaded via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Reports Screen -->
+      <!-- Ava AI Screen -->
+      <section id="ava-ai-screen" class="screen">
+        <div class="screen-header">
+          <h2>Ava AI - Business Intelligence</h2>
+          <button class="btn-primary" onclick="refreshAvaAI()">
+            <span class="refresh-icon">SYNC</span> Refresh Insights
+          </button>
+        </div>
+
+        <!-- Ava AI Header -->
+        <div class="ava-ai-header">
+          <div class="ava-avatar">
+            <span class="ava-icon">AVA</span>
+            <div class="ava-pulse"></div>
+          </div>
+          <div class="ava-intro">
+            <h3>Hello! I'm Ava, your AI Business Assistant</h3>
+            <p>I analyze your shop data to provide forecasts and actionable insights. Here's what I found today:</p>
+          </div>
+        </div>
+
+        <!-- Ava AI Filter -->
+        <div class="ava-filter">
+          <button class="filter-btn active" onclick="filterAvaAI('all')">All Insights</button>
+          <button class="filter-btn" onclick="filterAvaAI('forecast')">Sales Forecast</button>
+          <button class="filter-btn" onclick="filterAvaAI('stockout')">Stock Out</button>
+          <button class="filter-btn" onclick="filterAvaAI('reorder')">Reorder</button>
+          <button class="filter-btn" onclick="filterAvaAI('profit')">Profit</button>
+          <button class="filter-btn" onclick="filterAvaAI('recommendations')">Recommendations</button>
+          <button class="filter-btn" onclick="filterAvaAI('cannibalization')">Cannibalization</button>
+          <button class="filter-btn" onclick="filterAvaAI('trending')">Trending</button>
+        </div>
+
+        <!-- AI Insights Grid -->
+        <div class="ava-insights-grid">
+          <!-- Sales Forecast Card -->
+          <div class="ava-card forecast-card" data-feature="forecast">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">FCST</span>
+              <h3>Next Week Sales Forecast</h3>
+            </div>
+            <div class="ava-card-body">
+              <div class="forecast-main" id="sales-forecast-value">
+                <span class="forecast-amount">₱98,500</span>
+                <span class="forecast-trend positive">+10.4% expected</span>
+              </div>
+              <div class="forecast-breakdown" id="sales-forecast-breakdown">
+                <div class="forecast-day">
+                  <span class="day">Mon</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 75%;"></div></div>
+                  <span class="amount">₱14,200</span>
+                </div>
+                <div class="forecast-day">
+                  <span class="day">Tue</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 80%;"></div></div>
+                  <span class="amount">₱15,100</span>
+                </div>
+                <div class="forecast-day">
+                  <span class="day">Wed</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 65%;"></div></div>
+                  <span class="amount">₱12,300</span>
+                </div>
+                <div class="forecast-day">
+                  <span class="day">Thu</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 85%;"></div></div>
+                  <span class="amount">₱16,200</span>
+                </div>
+                <div class="forecast-day">
+                  <span class="day">Fri</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 90%;"></div></div>
+                  <span class="amount">₱17,000</span>
+                </div>
+                <div class="forecast-day">
+                  <span class="day">Sat</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 70%;"></div></div>
+                  <span class="amount">₱13,200</span>
+                </div>
+                <div class="forecast-day">
+                  <span class="day">Sun</span>
+                  <div class="forecast-bar"><div class="forecast-fill" style="width: 55%;"></div></div>
+                  <span class="amount">₱10,500</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stock Alert Card -->
+          <div class="ava-card alert-card" data-feature="stockout">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">ALERT</span>
+              <h3>Stock Out Forecast</h3>
+            </div>
+            <div class="ava-card-body">
+              <p class="alert-intro">Based on current sales velocity, these items may run out:</p>
+              <div class="stock-alerts" id="stock-alerts">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Reorder Suggestions Card -->
+          <div class="ava-card suggestion-card" data-feature="reorder">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">ORDER</span>
+              <h3>Reorder Suggestions</h3>
+            </div>
+            <div class="ava-card-body">
+              <p class="suggestion-intro">Recommended items to restock this week:</p>
+              <div class="reorder-list" id="reorder-suggestions">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Profit Insights Card -->
+          <div class="ava-card profit-card" data-feature="profit">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">PROFIT</span>
+              <h3>Profit Insights</h3>
+            </div>
+            <div class="ava-card-body">
+              <div class="profit-stats" id="profit-insights">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Recommendations Section -->
+        <div class="ava-recommendations" data-feature="recommendations">
+          <div class="ava-card full-width">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">TIPS</span>
+              <h3>Ava's Recommendations</h3>
+            </div>
+            <div class="ava-card-body">
+              <div class="recommendations-list" id="ava-recommendations">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales Cannibalization Section -->
+        <div class="ava-cannibalization" data-feature="cannibalization">
+          <div class="ava-card full-width">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">COMP</span>
+              <h3>Sales Cannibalization Analysis</h3>
+            </div>
+            <div class="ava-card-body">
+              <p class="cannibalization-intro">Products competing for the same customers within categories:</p>
+              <div class="cannibalization-grid" id="cannibalization-analysis">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trending Products -->
+        <div class="ava-trending" data-feature="trending">
+          <div class="ava-card full-width">
+            <div class="ava-card-header">
+              <span class="ava-card-icon">TREND</span>
+              <h3>Trending Products This Week</h3>
+            </div>
+            <div class="ava-card-body">
+              <div class="trending-grid" id="trending-products">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Screen -->
+      <section id="settings-screen" class="screen">
+        <div class="screen-header">
+          <h2>Settings</h2>
+        </div>
+        <div class="settings-container">
+          <div class="settings-section">
+            <h3>Store Information</h3>
+            <div class="setting-item">
+              <label for="store-name-input">Store Name</label>
+              <input type="text" id="store-name-input" value="FlyHighManarang" oninput="updateStoreName()">
+            </div>
+            <div class="setting-item">
+              <label for="store-address">Store Address</label>
+              <input type="text" id="store-address" value="123 Main Street, City" disabled>
+              <small>Demo only - not editable</small>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Display Settings</h3>
+            <div class="setting-item toggle-setting">
+              <label>Dark Mode</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="dark-mode-toggle" onchange="toggleTheme()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <label for="currency-display">Currency</label>
+              <select id="currency-display" disabled>
+                <option value="PHP" selected>PHP (₱)</option>
+              </select>
+              <small>Demo only - PHP fixed</small>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>About</h3>
+            <div class="about-info">
+              <p><strong>FlyHighManarang POS</strong></p>
+              <p>Version 1.0.0 (Demo)</p>
+              <p>Animal Feed & Veterinary Medicine</p>
+              <p class="demo-notice">Note: This is a demonstration app with no real data persistence.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Product Selection Modal (POS) -->
+  <div id="product-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-product-name">Select Unit</h3>
+        <button class="modal-close" onclick="closeProductModal()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="unit-selection" id="unit-selection">
+          <!-- Unit options loaded via JS -->
+        </div>
+        <div class="custom-kg-input" id="custom-kg-container" style="display: none;">
+          <label for="custom-kg">Enter Custom KG:</label>
+          <input type="number" id="custom-kg" min="0.01" step="0.01" placeholder="e.g. 1.25">
+        </div>
+        <div class="quantity-selection">
+          <label>Quantity:</label>
+          <div class="quantity-controls">
+            <button onclick="decreaseQuantity()">-</button>
+            <input type="number" id="item-quantity" value="1" min="1">
+            <button onclick="increaseQuantity()">+</button>
+          </div>
+        </div>
+        <div class="price-preview">
+          <span>Price:</span>
+          <span id="preview-price">₱0.00</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeProductModal()">Cancel</button>
+        <button class="btn-primary" onclick="addToCart()">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Product Modal -->
+  <div id="edit-product-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="edit-modal-title">Add New Product</h3>
+        <button class="modal-close" onclick="closeEditProductModal()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-product-name">Product Name</label>
+          <input type="text" id="edit-product-name" placeholder="Enter product name">
+        </div>
+        <div class="form-group">
+          <label for="edit-product-brand">Brand</label>
+          <input type="text" id="edit-product-brand" placeholder="Enter brand name">
+        </div>
+        <div class="form-group">
+          <label for="edit-product-category">Category</label>
+          <select id="edit-product-category">
+            <option value="Feed">Feed</option>
+            <option value="Medicine">Medicine</option>
+            <option value="Vitamins">Vitamins & Supplements</option>
+            <option value="Accessories">Accessories & Equipment</option>
+            <option value="Grooming">Grooming & Hygiene</option>
+            <option value="Treats">Treats & Snacks</option>
+          </select>
+        </div>
+        <div class="form-group feed-pricing">
+          <label for="edit-price-per-kg">Price per KG</label>
+          <input type="number" id="edit-price-per-kg" placeholder="0.00">
+        </div>
+        <div class="form-group feed-pricing">
+          <label for="edit-price-per-sack">Price per Sack</label>
+          <input type="number" id="edit-price-per-sack" placeholder="0.00">
+        </div>
+        <div class="form-group feed-pricing">
+          <label for="edit-kg-per-sack">KG per Sack</label>
+          <input type="number" id="edit-kg-per-sack" placeholder="e.g. 25" min="1">
+        </div>
+        <div class="form-group medicine-pricing" style="display: none;">
+          <label for="edit-price-per-piece">Price per Piece</label>
+          <input type="number" id="edit-price-per-piece" placeholder="0.00">
+        </div>
+        <div class="form-group medicine-pricing" style="display: none;">
+          <label for="edit-price-per-box">Price per Box</label>
+          <input type="number" id="edit-price-per-box" placeholder="0.00">
+        </div>
+        <div class="form-group medicine-pricing" style="display: none;">
+          <label for="edit-pieces-per-box">Pieces per Box</label>
+          <input type="number" id="edit-pieces-per-box" placeholder="e.g. 12" min="1">
+        </div>
+
+        <div class="form-divider">
+          <span>Cost & Wholesale Pricing</span>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-cost-price">Cost Price (Your buying price)</label>
+          <input type="number" id="edit-cost-price" placeholder="0.00" step="0.01">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-wholesale-price">Wholesale Price</label>
+            <input type="number" id="edit-wholesale-price" placeholder="0.00" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="edit-wholesale-min">Min Qty for Wholesale</label>
+            <input type="number" id="edit-wholesale-min" placeholder="e.g. 5" min="1">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeEditProductModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveProduct()">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Confirmation Modal -->
+  <div id="checkout-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Confirm Checkout</h3>
+        <button class="modal-close" onclick="closeCheckoutModal()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="checkout-summary" id="checkout-summary">
+          <!-- Summary loaded via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeCheckoutModal()">Cancel</button>
+        <button class="btn-success" onclick="confirmCheckout()">Confirm & Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Display Modal -->
+  <div id="add-display-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add to Display</h3>
+        <button class="modal-close" onclick="closeAddDisplayModal()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="display-product-select">Select Feed Product</label>
+          <select id="display-product-select">
+            <option value="">-- Select a feed product --</option>
+            <!-- Feed products loaded via JS -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="display-date">Display Date</label>
+          <input type="date" id="display-date">
+        </div>
+        <div class="display-product-info" id="display-product-info" style="display: none;">
+          <div class="info-row">
+            <span>Product:</span>
+            <span id="display-info-name">-</span>
+          </div>
+          <div class="info-row">
+            <span>KG per Sack:</span>
+            <span id="display-info-kg">-</span>
+          </div>
+          <div class="info-row">
+            <span>Available Sacks:</span>
+            <span id="display-info-stock">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeAddDisplayModal()">Cancel</button>
+        <button class="btn-primary" onclick="addToDisplay()">Add to Display</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Toast -->
+  <div id="toast" class="toast">
+    <span id="toast-message">Success!</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
