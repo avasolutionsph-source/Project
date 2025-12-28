@@ -579,7 +579,9 @@ let state = {
   products: [...PRODUCTS],
   inventory: [...INVENTORY],
   display: [...DISPLAY],
-  editingProductId: null
+  editingProductId: null,
+  posSearchTerm: "",
+  posCurrentCategory: "all"
 };
 
 // ============================================
@@ -872,12 +874,33 @@ function updateAllTimeSales() {
 // POS Functions
 // ============================================
 
-function renderProducts(filter = "all") {
+function renderProducts(filter = "all", searchTerm = "") {
   const grid = document.getElementById("product-grid");
   let filteredProducts = state.products;
 
+  // Apply category filter
   if (filter !== "all") {
-    filteredProducts = state.products.filter(p => p.category === filter);
+    filteredProducts = filteredProducts.filter(p => p.category === filter);
+  }
+
+  // Apply search filter
+  if (searchTerm.trim()) {
+    const search = searchTerm.toLowerCase().trim();
+    filteredProducts = filteredProducts.filter(p =>
+      p.name.toLowerCase().includes(search) ||
+      (p.brand && p.brand.toLowerCase().includes(search)) ||
+      p.category.toLowerCase().includes(search)
+    );
+  }
+
+  if (filteredProducts.length === 0) {
+    grid.innerHTML = `
+      <div class="no-results">
+        <p>No products found</p>
+        <small>${searchTerm ? `for "${searchTerm}"` : ''}</small>
+      </div>
+    `;
+    return;
   }
 
   grid.innerHTML = filteredProducts.map(product => `
@@ -896,12 +919,19 @@ function renderProducts(filter = "all") {
 
 function filterProducts(category) {
   // Update filter buttons
-  document.querySelectorAll(".filter-btn").forEach(btn => {
+  document.querySelectorAll("#pos-screen .filter-btn").forEach(btn => {
     btn.classList.remove("active");
   });
   event.target.classList.add("active");
 
-  renderProducts(category);
+  state.posCurrentCategory = category;
+  renderProducts(category, state.posSearchTerm);
+}
+
+function searchPOSProducts() {
+  const searchInput = document.getElementById("pos-product-search");
+  state.posSearchTerm = searchInput.value;
+  renderProducts(state.posCurrentCategory, state.posSearchTerm);
 }
 
 function selectProduct(productId) {
