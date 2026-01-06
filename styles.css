@@ -3084,3 +3084,382 @@ body {
 .btn-primary:hover .refresh-icon {
   transform: rotate(180deg);
 }
+
+/* ============================================
+   Sales History Screen Styles
+   ============================================ */
+
+/* Filters Section */
+.sales-history-filters {
+  margin-bottom: 20px;
+}
+
+.date-filter-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.date-filter-btn {
+  padding: 10px 20px;
+  border: 1px solid var(--surface-light);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 25px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+}
+
+.date-filter-btn:hover,
+.date-filter-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.sales-history-search-row {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.sales-search-bar {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.sales-search-input {
+  width: 100%;
+  padding: 12px 45px 12px 16px;
+  border: 1px solid var(--surface-light);
+  border-radius: 25px;
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: var(--transition);
+}
+
+.sales-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+}
+
+.sales-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.sales-search-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.payment-filter {
+  padding: 12px 20px;
+  border: 1px solid var(--surface-light);
+  border-radius: 25px;
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.payment-filter:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Summary Cards */
+.sales-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.summary-card {
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 5px;
+}
+
+.summary-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Transaction List */
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transaction-card {
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.transaction-card:hover {
+  background: var(--surface-light);
+  transform: translateX(5px);
+}
+
+.transaction-info {
+  flex: 1;
+}
+
+.transaction-id {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.transaction-meta {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.transaction-items-count {
+  color: var(--text-secondary);
+}
+
+.transaction-date {
+  color: var(--text-secondary);
+}
+
+.transaction-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.transaction-total {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.transaction-payment {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 15px;
+  background: var(--surface-light);
+  color: var(--text-secondary);
+}
+
+.transaction-payment.cash {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+
+.transaction-payment.gcash {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
+}
+
+.transaction-payment.maya {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+/* Transaction Detail Modal */
+.transaction-modal-content {
+  max-width: 500px;
+}
+
+.transaction-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--surface-light);
+  margin-bottom: 15px;
+}
+
+.txn-id {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.txn-date {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.transaction-items-list {
+  margin-bottom: 20px;
+}
+
+.txn-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--surface-light);
+}
+
+.txn-item:last-child {
+  border-bottom: none;
+}
+
+.txn-item-info {
+  flex: 1;
+}
+
+.txn-item-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.txn-item-details {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.txn-item-price {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.transaction-totals {
+  background: var(--surface-light);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.txn-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  color: var(--text-secondary);
+}
+
+.txn-total-row.total {
+  border-top: 1px solid var(--surface);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.txn-total-row.total span:last-child {
+  color: var(--primary);
+}
+
+.txn-payment-method {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px dashed var(--surface);
+  color: var(--text-secondary);
+}
+
+.payment-badge {
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.payment-badge.cash {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+
+.payment-badge.gcash {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
+}
+
+.payment-badge.maya {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+/* No Transactions Message */
+.no-transactions {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.no-transactions-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.no-transactions p {
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.no-transactions small {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* Mobile Responsive for Sales History */
+@media (max-width: 768px) {
+  .sales-history-search-row {
+    flex-direction: column;
+  }
+
+  .sales-search-bar {
+    max-width: 100%;
+  }
+
+  .payment-filter {
+    width: 100%;
+  }
+
+  .transaction-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .transaction-right {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .summary-value {
+    font-size: 1.3rem;
+  }
+}

@@ -63,6 +63,200 @@ const ALLTIME_SALES = {
   since: 2021
 };
 
+// Demo Transaction History Data
+const TRANSACTIONS = [
+  {
+    id: "TXN-20251228-001",
+    date: "2025-12-28T14:30:00",
+    items: [
+      { productId: 1, name: "Broiler Starter Crumble", brand: "B-Meg", quantity: 2, unit: "sack", unitPrice: 1250, price: 2500 },
+      { productId: 16, name: "Vetracin Gold Injectable", brand: "Unahco", quantity: 1, unit: "piece", unitPrice: 185, price: 185 }
+    ],
+    subtotal: 2685,
+    total: 2685,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251228-002",
+    date: "2025-12-28T12:15:00",
+    items: [
+      { productId: 6, name: "Hog Starter Pellet", brand: "B-Meg", quantity: 5, unit: "sack", unitPrice: 1350, price: 6750 }
+    ],
+    subtotal: 6750,
+    total: 6750,
+    paymentMethod: "GCash"
+  },
+  {
+    id: "TXN-20251228-003",
+    date: "2025-12-28T10:45:00",
+    items: [
+      { productId: 2, name: "Layer Pellet Premium", brand: "Vitarich", quantity: 3, unit: "sack", unitPrice: 1150, price: 3450 },
+      { productId: 21, name: "Amino Acid Supplement", brand: "Vetsearch", quantity: 2, unit: "piece", unitPrice: 145, price: 290 }
+    ],
+    subtotal: 3740,
+    total: 3740,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251227-001",
+    date: "2025-12-27T16:20:00",
+    items: [
+      { productId: 11, name: "Duck Grower Pellet", brand: "Pilmico", quantity: 2, unit: "sack", unitPrice: 1180, price: 2360 }
+    ],
+    subtotal: 2360,
+    total: 2360,
+    paymentMethod: "Maya"
+  },
+  {
+    id: "TXN-20251227-002",
+    date: "2025-12-27T14:00:00",
+    items: [
+      { productId: 1, name: "Broiler Starter Crumble", brand: "B-Meg", quantity: 10, unit: "sack", unitPrice: 1150, price: 11500 }
+    ],
+    subtotal: 11500,
+    total: 11500,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251227-003",
+    date: "2025-12-27T09:30:00",
+    items: [
+      { productId: 25, name: "Nipple Drinker Set", brand: "AgriTech", quantity: 5, unit: "piece", unitPrice: 85, price: 425 },
+      { productId: 26, name: "Tube Feeder 5kg", brand: "FarmPlus", quantity: 3, unit: "piece", unitPrice: 220, price: 660 }
+    ],
+    subtotal: 1085,
+    total: 1085,
+    paymentMethod: "GCash"
+  },
+  {
+    id: "TXN-20251226-001",
+    date: "2025-12-26T15:45:00",
+    items: [
+      { productId: 8, name: "Hog Finisher Premium", brand: "Thunderbird", quantity: 8, unit: "sack", unitPrice: 1280, price: 10240 }
+    ],
+    subtotal: 10240,
+    total: 10240,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251226-002",
+    date: "2025-12-26T11:20:00",
+    items: [
+      { productId: 17, name: "Albendazole Dewormer", brand: "Univet", quantity: 10, unit: "piece", unitPrice: 65, price: 650 },
+      { productId: 20, name: "Ivermectin Injectable", brand: "Kepro", quantity: 5, unit: "piece", unitPrice: 320, price: 1600 }
+    ],
+    subtotal: 2250,
+    total: 2250,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251226-003",
+    date: "2025-12-26T08:50:00",
+    items: [
+      { productId: 3, name: "Broiler Finisher Mash", brand: "Thunderbird", quantity: 4, unit: "sack", unitPrice: 1200, price: 4800 }
+    ],
+    subtotal: 4800,
+    total: 4800,
+    paymentMethod: "GCash"
+  },
+  {
+    id: "TXN-20251225-001",
+    date: "2025-12-25T13:00:00",
+    items: [
+      { productId: 13, name: "Tilapia Grower Float", brand: "Santeh", quantity: 6, unit: "sack", unitPrice: 1420, price: 8520 }
+    ],
+    subtotal: 8520,
+    total: 8520,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251224-001",
+    date: "2025-12-24T17:30:00",
+    items: [
+      { productId: 28, name: "Perla Dog Shampoo", brand: "Perla", quantity: 3, unit: "piece", unitPrice: 125, price: 375 },
+      { productId: 29, name: "Tick & Flea Powder", brand: "Bob Martin", quantity: 2, unit: "piece", unitPrice: 165, price: 330 }
+    ],
+    subtotal: 705,
+    total: 705,
+    paymentMethod: "Maya"
+  },
+  {
+    id: "TXN-20251224-002",
+    date: "2025-12-24T14:15:00",
+    items: [
+      { productId: 7, name: "Hog Grower Crumble", brand: "Pilmico", quantity: 3, unit: "sack", unitPrice: 1320, price: 3960 },
+      { productId: 9, name: "Sow & Piglet Starter", brand: "UNAHCO", quantity: 2, unit: "sack", unitPrice: 1480, price: 2960 }
+    ],
+    subtotal: 6920,
+    total: 6920,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251224-003",
+    date: "2025-12-24T10:00:00",
+    items: [
+      { productId: 31, name: "Pedigree Dentastix", brand: "Pedigree", quantity: 5, unit: "piece", unitPrice: 45, price: 225 },
+      { productId: 32, name: "Bow Wow Beef Jerky", brand: "Bow Wow", quantity: 8, unit: "piece", unitPrice: 35, price: 280 }
+    ],
+    subtotal: 505,
+    total: 505,
+    paymentMethod: "GCash"
+  },
+  {
+    id: "TXN-20251223-001",
+    date: "2025-12-23T16:45:00",
+    items: [
+      { productId: 15, name: "Cattle Fattener Mix", brand: "Feedpro", quantity: 4, unit: "sack", unitPrice: 1380, price: 5520 }
+    ],
+    subtotal: 5520,
+    total: 5520,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251223-002",
+    date: "2025-12-23T12:30:00",
+    items: [
+      { productId: 4, name: "Native Chicken Feeds", brand: "San Miguel Foods", quantity: 2, unit: "sack", unitPrice: 1100, price: 2200 },
+      { productId: 24, name: "Vitamin B-Complex", brand: "Bayer", quantity: 3, unit: "piece", unitPrice: 195, price: 585 }
+    ],
+    subtotal: 2785,
+    total: 2785,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251222-001",
+    date: "2025-12-22T15:00:00",
+    items: [
+      { productId: 5, name: "Quail Layer Ration", brand: "B-Meg", quantity: 3, unit: "sack", unitPrice: 1050, price: 3150 }
+    ],
+    subtotal: 3150,
+    total: 3150,
+    paymentMethod: "Maya"
+  },
+  {
+    id: "TXN-20251222-002",
+    date: "2025-12-22T11:20:00",
+    items: [
+      { productId: 18, name: "Oxytetracycline Powder", brand: "Vetpharm", quantity: 4, unit: "piece", unitPrice: 95, price: 380 },
+      { productId: 19, name: "Terramycin Wound Spray", brand: "Zoetis", quantity: 2, unit: "piece", unitPrice: 285, price: 570 }
+    ],
+    subtotal: 950,
+    total: 950,
+    paymentMethod: "Cash"
+  },
+  {
+    id: "TXN-20251221-001",
+    date: "2025-12-21T14:30:00",
+    items: [
+      { productId: 10, name: "Duck Starter Crumble", brand: "Vitarich", quantity: 5, unit: "sack", unitPrice: 1150, price: 5750 },
+      { productId: 12, name: "Duck Layer Pellet", brand: "San Miguel Foods", quantity: 3, unit: "sack", unitPrice: 1220, price: 3660 }
+    ],
+    subtotal: 9410,
+    total: 9410,
+    paymentMethod: "GCash"
+  }
+];
+
 const PRODUCTS = [
   // =====================
   // CHICKEN FEEDS - Philippine Brands
@@ -579,9 +773,13 @@ let state = {
   products: [...PRODUCTS],
   inventory: [...INVENTORY],
   display: [...DISPLAY],
+  transactions: [...TRANSACTIONS],
   editingProductId: null,
   posSearchTerm: "",
-  posCurrentCategory: "all"
+  posCurrentCategory: "all",
+  salesHistoryFilter: "today",
+  salesHistoryPayment: "all",
+  salesHistorySearch: ""
 };
 
 // ============================================
@@ -685,6 +883,7 @@ function navigateTo(screen) {
   const titles = {
     dashboard: "Dashboard",
     pos: "Point of Sale",
+    "sales-history": "Sales History",
     display: "Display",
     inventory: "Inventory",
     products: "Products",
@@ -696,6 +895,11 @@ function navigateTo(screen) {
   // Render Ava AI insights when navigating to that screen
   if (screen === "ava-ai") {
     renderAvaAI();
+  }
+
+  // Render Sales History when navigating to that screen
+  if (screen === "sales-history") {
+    renderSalesHistory();
   }
 
   // Close sidebar on mobile
@@ -1211,11 +1415,16 @@ function addToCart() {
     }
   }
 
+  // Calculate unit price for transaction history
+  const unitPrice = price / state.quantity;
+
   const cartItem = {
     id: Date.now(),
     productId: product.id,
     productName: product.name,
+    brand: product.brand || '',
     unit: unitLabel,
+    unitPrice: unitPrice,
     price: price,
     quantity: state.quantity,
     kgAmount: kgAmount, // Store kg amount for display deduction on checkout
@@ -1368,6 +1577,32 @@ function closeCheckoutModal() {
 }
 
 function confirmCheckout() {
+  // Create new transaction record
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const txnCount = state.transactions.filter(t => t.id.includes(dateStr)).length + 1;
+  const txnId = `TXN-${dateStr}-${String(txnCount).padStart(3, '0')}`;
+
+  const newTransaction = {
+    id: txnId,
+    date: now.toISOString(),
+    items: state.cart.map(item => ({
+      productId: item.productId,
+      name: item.productName,
+      brand: item.brand || '',
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+      price: item.price
+    })),
+    subtotal: state.cartTotal,
+    total: state.cartTotal,
+    paymentMethod: state.paymentMethod
+  };
+
+  // Add to transactions
+  state.transactions.unshift(newTransaction);
+
   // Deduct kg amounts from display for Feed products
   state.cart.forEach(item => {
     if (item.kgAmount > 0) {
@@ -1379,7 +1614,195 @@ function confirmCheckout() {
   state.cart = [];
   updateCart();
   closeCheckoutModal();
-  showToast("Transaction completed successfully! (Demo)");
+  showToast("Transaction completed successfully!");
+}
+
+// ============================================
+// Sales History Functions
+// ============================================
+
+function renderSalesHistory() {
+  const filteredTransactions = getFilteredTransactions();
+  const container = document.getElementById("transaction-list");
+
+  // Update summary cards
+  updateSalesSummary(filteredTransactions);
+
+  if (filteredTransactions.length === 0) {
+    container.innerHTML = `
+      <div class="no-transactions">
+        <div class="no-transactions-icon">RECEIPT</div>
+        <p>No transactions found</p>
+        <small>${state.salesHistorySearch ? `for "${state.salesHistorySearch}"` : 'for this period'}</small>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filteredTransactions.map(txn => {
+    const txnDate = new Date(txn.date);
+    const formattedDate = formatTransactionDate(txnDate);
+    const itemCount = txn.items.length;
+    const paymentClass = txn.paymentMethod.toLowerCase();
+
+    return `
+      <div class="transaction-card" onclick="viewTransactionDetails('${txn.id}')">
+        <div class="transaction-info">
+          <div class="transaction-id">#${txn.id}</div>
+          <div class="transaction-meta">
+            <span class="transaction-items-count">${itemCount} item${itemCount > 1 ? 's' : ''}</span>
+            <span class="transaction-date">${formattedDate}</span>
+          </div>
+        </div>
+        <div class="transaction-right">
+          <div class="transaction-total">₱${txn.total.toLocaleString()}</div>
+          <div class="transaction-payment ${paymentClass}">${txn.paymentMethod}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function getFilteredTransactions() {
+  let filtered = [...state.transactions];
+
+  // Apply date filter
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (state.salesHistoryFilter === "today") {
+    filtered = filtered.filter(txn => {
+      const txnDate = new Date(txn.date);
+      return txnDate >= today;
+    });
+  } else if (state.salesHistoryFilter === "week") {
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    filtered = filtered.filter(txn => {
+      const txnDate = new Date(txn.date);
+      return txnDate >= weekAgo;
+    });
+  } else if (state.salesHistoryFilter === "month") {
+    const monthAgo = new Date(today);
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    filtered = filtered.filter(txn => {
+      const txnDate = new Date(txn.date);
+      return txnDate >= monthAgo;
+    });
+  }
+
+  // Apply payment method filter
+  if (state.salesHistoryPayment !== "all") {
+    filtered = filtered.filter(txn => txn.paymentMethod === state.salesHistoryPayment);
+  }
+
+  // Apply search filter
+  if (state.salesHistorySearch.trim()) {
+    const search = state.salesHistorySearch.toLowerCase();
+    filtered = filtered.filter(txn =>
+      txn.id.toLowerCase().includes(search) ||
+      txn.items.some(item => item.name.toLowerCase().includes(search))
+    );
+  }
+
+  // Sort by date descending (newest first)
+  filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  return filtered;
+}
+
+function updateSalesSummary(transactions) {
+  const totalSales = transactions.reduce((sum, txn) => sum + txn.total, 0);
+  const transactionCount = transactions.length;
+  const averageSale = transactionCount > 0 ? totalSales / transactionCount : 0;
+
+  document.getElementById("summary-total-sales").textContent = `₱${totalSales.toLocaleString()}`;
+  document.getElementById("summary-transaction-count").textContent = transactionCount;
+  document.getElementById("summary-average-sale").textContent = `₱${Math.round(averageSale).toLocaleString()}`;
+}
+
+function formatTransactionDate(date) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const txnDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  if (txnDay.getTime() === today.getTime()) {
+    return `Today ${timeStr}`;
+  } else if (txnDay.getTime() === yesterday.getTime()) {
+    return `Yesterday ${timeStr}`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + timeStr;
+  }
+}
+
+function filterByDateRange(range) {
+  state.salesHistoryFilter = range;
+
+  // Update active button
+  document.querySelectorAll(".date-filter-btn").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
+
+  renderSalesHistory();
+}
+
+function filterByPayment() {
+  state.salesHistoryPayment = document.getElementById("payment-filter").value;
+  renderSalesHistory();
+}
+
+function searchTransactions() {
+  state.salesHistorySearch = document.getElementById("sales-history-search").value;
+  renderSalesHistory();
+}
+
+function viewTransactionDetails(txnId) {
+  const txn = state.transactions.find(t => t.id === txnId);
+  if (!txn) return;
+
+  const txnDate = new Date(txn.date);
+  const formattedDate = txnDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+
+  document.getElementById("txn-detail-id").textContent = `#${txn.id}`;
+  document.getElementById("txn-detail-date").textContent = formattedDate;
+
+  // Render items
+  const itemsHtml = txn.items.map(item => `
+    <div class="txn-item">
+      <div class="txn-item-info">
+        <div class="txn-item-name">${item.name}</div>
+        <div class="txn-item-details">${item.quantity} ${item.unit} x ₱${item.unitPrice.toLocaleString()}</div>
+      </div>
+      <div class="txn-item-price">₱${item.price.toLocaleString()}</div>
+    </div>
+  `).join("");
+
+  document.getElementById("txn-detail-items").innerHTML = itemsHtml;
+  document.getElementById("txn-detail-subtotal").textContent = `₱${txn.subtotal.toLocaleString()}`;
+  document.getElementById("txn-detail-total").textContent = `₱${txn.total.toLocaleString()}`;
+
+  const paymentBadge = document.getElementById("txn-detail-payment");
+  paymentBadge.textContent = txn.paymentMethod;
+  paymentBadge.className = `payment-badge ${txn.paymentMethod.toLowerCase()}`;
+
+  document.getElementById("transaction-detail-modal").classList.add("active");
+}
+
+function closeTransactionModal() {
+  document.getElementById("transaction-detail-modal").classList.remove("active");
 }
 
 // ============================================

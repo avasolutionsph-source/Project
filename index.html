@@ -104,6 +104,16 @@
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
             </svg>
           </span> POS</a></li>
+        <li><a href="#" class="nav-item" data-screen="sales-history">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </span> Sales History</a></li>
         <li><a href="#" class="nav-item" data-screen="display">
           <span class="nav-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -354,6 +364,61 @@
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- Sales History Screen -->
+      <section id="sales-history-screen" class="screen">
+        <div class="screen-header">
+          <h2>Sales History</h2>
+        </div>
+
+        <!-- Date Filter Buttons -->
+        <div class="sales-history-filters">
+          <div class="date-filter-buttons">
+            <button class="date-filter-btn active" onclick="filterByDateRange('today')">Today</button>
+            <button class="date-filter-btn" onclick="filterByDateRange('week')">This Week</button>
+            <button class="date-filter-btn" onclick="filterByDateRange('month')">This Month</button>
+            <button class="date-filter-btn" onclick="filterByDateRange('all')">All Time</button>
+          </div>
+          <div class="sales-history-search-row">
+            <div class="sales-search-bar">
+              <input type="text" class="sales-search-input" placeholder="Search transactions..." id="sales-history-search" oninput="searchTransactions()">
+              <span class="sales-search-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
+              </span>
+            </div>
+            <select class="payment-filter" id="payment-filter" onchange="filterByPayment()">
+              <option value="all">All Payments</option>
+              <option value="Cash">Cash</option>
+              <option value="GCash">GCash</option>
+              <option value="Maya">Maya</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="sales-summary-cards">
+          <div class="summary-card">
+            <div class="summary-value" id="summary-total-sales">₱0</div>
+            <div class="summary-label">Total Sales</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" id="summary-transaction-count">0</div>
+            <div class="summary-label">Transactions</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" id="summary-average-sale">₱0</div>
+            <div class="summary-label">Average Sale</div>
+          </div>
+        </div>
+
+        <!-- Transaction List -->
+        <div class="transaction-list" id="transaction-list">
+          <!-- Transactions loaded via JS -->
         </div>
       </section>
 
@@ -823,6 +888,42 @@
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeAddDisplayModal()">Cancel</button>
         <button class="btn-primary" onclick="addToDisplay()">Add to Display</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction Detail Modal -->
+  <div id="transaction-detail-modal" class="modal">
+    <div class="modal-content transaction-modal-content">
+      <div class="modal-header">
+        <h3>Transaction Details</h3>
+        <button class="modal-close" onclick="closeTransactionModal()">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="transaction-detail-header">
+          <div class="txn-id" id="txn-detail-id">#TXN-001</div>
+          <div class="txn-date" id="txn-detail-date">Dec 28, 2025 2:30 PM</div>
+        </div>
+        <div class="transaction-items-list" id="txn-detail-items">
+          <!-- Items loaded via JS -->
+        </div>
+        <div class="transaction-totals">
+          <div class="txn-total-row">
+            <span>Subtotal:</span>
+            <span id="txn-detail-subtotal">₱0.00</span>
+          </div>
+          <div class="txn-total-row total">
+            <span>Total:</span>
+            <span id="txn-detail-total">₱0.00</span>
+          </div>
+          <div class="txn-payment-method">
+            <span>Payment Method:</span>
+            <span id="txn-detail-payment" class="payment-badge">Cash</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeTransactionModal()">Close</button>
       </div>
     </div>
   </div>
