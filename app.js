@@ -1129,6 +1129,18 @@ function navigateTo(screen) {
   };
   document.getElementById("page-title").textContent = titles[screen];
 
+  // Show/hide global search based on screen
+  const globalSearch = document.getElementById("global-search");
+  const searchableScreens = ["display", "inventory", "products"];
+  if (searchableScreens.includes(screen)) {
+    globalSearch.style.display = "block";
+    globalSearch.placeholder = `Search ${titles[screen].toLowerCase()}...`;
+    globalSearch.value = "";
+  } else {
+    globalSearch.style.display = "none";
+    globalSearch.value = "";
+  }
+
   // Render Ava AI insights when navigating to that screen
   if (screen === "ava-ai") {
     renderAvaAI();
@@ -2446,8 +2458,8 @@ function filterInventory(category, e) {
   renderInventory(category);
 }
 
-function searchInventory() {
-  const search = document.getElementById("inventory-search").value.toLowerCase();
+function searchInventory(searchTerm) {
+  const search = searchTerm.toLowerCase();
   const cards = document.querySelectorAll(".inventory-card");
 
   cards.forEach(card => {
@@ -2460,14 +2472,32 @@ function searchInventory() {
 // Display Functions
 // ============================================
 
-function searchDisplay() {
-  const search = document.getElementById("display-search").value.toLowerCase();
+function searchDisplay(searchTerm) {
+  const search = searchTerm.toLowerCase();
   const cards = document.querySelectorAll(".display-card");
 
   cards.forEach(card => {
     const name = card.querySelector("h3").textContent.toLowerCase();
     card.style.display = name.includes(search) ? "block" : "none";
   });
+}
+
+// Global search handler - routes to appropriate search based on current screen
+function handleGlobalSearch() {
+  const searchTerm = document.getElementById("global-search").value;
+
+  switch (state.currentScreen) {
+    case "display":
+      searchDisplay(searchTerm);
+      break;
+    case "inventory":
+      searchInventory(searchTerm);
+      break;
+    case "products":
+      currentProductsSearch = searchTerm.toLowerCase();
+      renderProductsTable(currentProductsFilter);
+      break;
+  }
 }
 
 function renderDisplay() {
