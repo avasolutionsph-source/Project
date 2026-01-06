@@ -3,14 +3,16 @@
    Enables offline functionality
    ============================================ */
 
-const CACHE_NAME = 'flyhighmanarang-v1';
+const CACHE_NAME = 'flyhighmanarang-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './db.js',
   './manifest.json',
-  './icons/icon.svg'
+  './icons/icon.svg',
+  'https://unpkg.com/dexie@latest/dist/dexie.js'
 ];
 
 // Install event - cache assets
