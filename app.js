@@ -2460,6 +2460,16 @@ function searchInventory() {
 // Display Functions
 // ============================================
 
+function searchDisplay() {
+  const search = document.getElementById("display-search").value.toLowerCase();
+  const cards = document.querySelectorAll(".display-card");
+
+  cards.forEach(card => {
+    const name = card.querySelector("h3").textContent.toLowerCase();
+    card.style.display = name.includes(search) ? "block" : "none";
+  });
+}
+
 function renderDisplay() {
   const grid = document.getElementById("display-grid");
 
@@ -2689,6 +2699,12 @@ async function deductFromDisplay(productId, kgAmount) {
 // ============================================
 
 let currentProductsFilter = "all";
+let currentProductsSearch = "";
+
+function searchProductsTable() {
+  currentProductsSearch = document.getElementById("products-search").value.toLowerCase();
+  renderProductsTable(currentProductsFilter);
+}
 
 function filterProductsTable(category, e) {
   currentProductsFilter = category;
@@ -2710,6 +2726,14 @@ function renderProductsTable(filter = "all") {
   let filteredProducts = state.products;
   if (filter !== "all") {
     filteredProducts = state.products.filter(p => p.category === filter);
+  }
+
+  // Apply search filter
+  if (currentProductsSearch) {
+    filteredProducts = filteredProducts.filter(p =>
+      p.name.toLowerCase().includes(currentProductsSearch) ||
+      (p.brand && p.brand.toLowerCase().includes(currentProductsSearch))
+    );
   }
 
   tbody.innerHTML = filteredProducts.map(product => {

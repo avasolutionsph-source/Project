@@ -523,7 +523,10 @@
       <section id="display-screen" class="screen">
         <div class="screen-header">
           <h2>Display Management</h2>
-          <button class="btn-primary" onclick="openAddDisplayModal()">+ Add Display</button>
+          <div class="header-actions">
+            <input type="text" class="search-input" placeholder="Search display..." id="display-search" oninput="searchDisplay()">
+            <button class="btn-primary" onclick="openAddDisplayModal()">+ Add Display</button>
+          </div>
         </div>
         <p class="display-description">Manage opened sacks for retail kg sales. When you sell by kg in POS, stock is deducted from display.</p>
         <div class="display-grid" id="display-grid">
@@ -558,7 +561,10 @@
       <section id="products-screen" class="screen">
         <div class="screen-header">
           <h2>Product Management</h2>
-          <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
+          <div class="header-actions">
+            <input type="text" class="search-input" placeholder="Search products..." id="products-search" oninput="searchProductsTable()">
+            <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
+          </div>
         </div>
         <div class="products-filter">
           <button class="filter-btn active" onclick="filterProductsTable('all', event)">All</button>
