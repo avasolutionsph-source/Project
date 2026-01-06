@@ -688,25 +688,25 @@ const PRODUCTS = [
 
 const INVENTORY = [
   // Chicken Feeds
-  { id: 1, name: "Broiler Starter Crumble", category: "Feed", stockKg: 625, stockSack: 25, lowStock: false },
-  { id: 2, name: "Layer Pellet Premium", category: "Feed", stockKg: 500, stockSack: 20, lowStock: false },
-  { id: 3, name: "Broiler Finisher Mash", category: "Feed", stockKg: 375, stockSack: 15, lowStock: false },
-  { id: 4, name: "Native Chicken Feeds", category: "Feed", stockKg: 125, stockSack: 5, lowStock: true },
+  { id: 1, name: "Broiler Starter Crumble", category: "Feed", stockKg: 625, stockSacks: 25, lowStock: false },
+  { id: 2, name: "Layer Pellet Premium", category: "Feed", stockKg: 500, stockSacks: 20, lowStock: false },
+  { id: 3, name: "Broiler Finisher Mash", category: "Feed", stockKg: 375, stockSacks: 15, lowStock: false },
+  { id: 4, name: "Native Chicken Feeds", category: "Feed", stockKg: 125, stockSacks: 5, lowStock: true },
   // Hog Feeds
-  { id: 5, name: "Hog Starter Pellet", category: "Feed", stockKg: 500, stockSack: 20, lowStock: false },
-  { id: 6, name: "Hog Grower Premium", category: "Feed", stockKg: 375, stockSack: 15, lowStock: false },
-  { id: 7, name: "Hog Finisher Mash", category: "Feed", stockKg: 250, stockSack: 10, lowStock: false },
-  { id: 8, name: "Sow & Piglet Feeds", category: "Feed", stockKg: 100, stockSack: 4, lowStock: true },
+  { id: 5, name: "Hog Starter Pellet", category: "Feed", stockKg: 500, stockSacks: 20, lowStock: false },
+  { id: 6, name: "Hog Grower Premium", category: "Feed", stockKg: 375, stockSacks: 15, lowStock: false },
+  { id: 7, name: "Hog Finisher Mash", category: "Feed", stockKg: 250, stockSacks: 10, lowStock: false },
+  { id: 8, name: "Sow & Piglet Feeds", category: "Feed", stockKg: 100, stockSacks: 4, lowStock: true },
   // Duck Feeds
-  { id: 9, name: "Duck Grower Pellet", category: "Feed", stockKg: 200, stockSack: 8, lowStock: false },
-  { id: 10, name: "Duck Layer Mash", category: "Feed", stockKg: 125, stockSack: 5, lowStock: true },
+  { id: 9, name: "Duck Grower Pellet", category: "Feed", stockKg: 200, stockSacks: 8, lowStock: false },
+  { id: 10, name: "Duck Layer Mash", category: "Feed", stockKg: 125, stockSacks: 5, lowStock: true },
   // Fish Feeds
-  { id: 11, name: "Tilapia Grower Pellet", category: "Feed", stockKg: 160, stockSack: 8, lowStock: false },
-  { id: 12, name: "Bangus Starter Feeds", category: "Feed", stockKg: 80, stockSack: 4, lowStock: true },
-  { id: 13, name: "Catfish Feeds Premium", category: "Feed", stockKg: 120, stockSack: 6, lowStock: false },
+  { id: 11, name: "Tilapia Grower Pellet", category: "Feed", stockKg: 160, stockSacks: 8, lowStock: false },
+  { id: 12, name: "Bangus Starter Feeds", category: "Feed", stockKg: 80, stockSacks: 4, lowStock: true },
+  { id: 13, name: "Catfish Feeds Premium", category: "Feed", stockKg: 120, stockSacks: 6, lowStock: false },
   // Goat & Cattle
-  { id: 14, name: "Goat Grower Pellet", category: "Feed", stockKg: 175, stockSack: 7, lowStock: false },
-  { id: 15, name: "Cattle Fattener Mix", category: "Feed", stockKg: 250, stockSack: 10, lowStock: false },
+  { id: 14, name: "Goat Grower Pellet", category: "Feed", stockKg: 175, stockSacks: 7, lowStock: false },
+  { id: 15, name: "Cattle Fattener Mix", category: "Feed", stockKg: 250, stockSacks: 10, lowStock: false },
   // Medicines
   { id: 16, name: "Vetracin Gold Injectable", category: "Medicine", stockUnits: 48, lowStock: false },
   { id: 17, name: "Albendazole Dewormer", category: "Medicine", stockUnits: 80, lowStock: false },
@@ -1147,12 +1147,14 @@ function renderProducts(filter = "all", searchTerm = "") {
   `).join("");
 }
 
-function filterProducts(category) {
+function filterProducts(category, e) {
   // Update filter buttons
   document.querySelectorAll("#pos-screen .filter-btn").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (e && e.target) {
+    e.target.classList.add("active");
+  }
 
   state.posCurrentCategory = category;
   renderProducts(category, state.posSearchTerm);
@@ -1238,6 +1240,9 @@ function renderUnitOptions(product) {
   }
 }
 
+// Track if custom kg listener is already attached
+let customKgListenerAttached = false;
+
 function selectUnit(unit) {
   state.selectedUnit = unit;
 
@@ -1254,10 +1259,15 @@ function selectUnit(unit) {
   if (unit === "custom") {
     customContainer.style.display = "block";
     document.getElementById("custom-kg").focus();
-    document.getElementById("custom-kg").addEventListener("input", (e) => {
-      state.customKg = parseFloat(e.target.value) || 0;
-      updatePreviewPrice();
-    });
+
+    // Only add listener once to prevent memory leak
+    if (!customKgListenerAttached) {
+      document.getElementById("custom-kg").addEventListener("input", (e) => {
+        state.customKg = parseFloat(e.target.value) || 0;
+        updatePreviewPrice();
+      });
+      customKgListenerAttached = true;
+    }
   } else {
     customContainer.style.display = "none";
   }
@@ -1505,9 +1515,16 @@ function removeFromCart(itemId) {
 }
 
 function clearCart() {
-  state.cart = [];
-  updateCart();
-  showToast("Cart cleared");
+  if (state.cart.length === 0) {
+    showToast("Cart is already empty");
+    return;
+  }
+
+  if (confirm("Are you sure you want to clear all items from the cart?")) {
+    state.cart = [];
+    updateCart();
+    showToast("Cart cleared");
+  }
 }
 
 function closeProductModal() {
@@ -1603,45 +1620,66 @@ function closeCheckoutModal() {
 }
 
 async function confirmCheckout() {
-  // Create new transaction record
-  const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const txnCount = state.transactions.filter(t => t.id.includes(dateStr)).length + 1;
-  const txnId = `TXN-${dateStr}-${String(txnCount).padStart(3, '0')}`;
+  // Validate cash payment
+  if (state.paymentMethod === "Cash") {
+    const cashInput = document.getElementById("customer-cash");
+    const cash = parseFloat(cashInput.value) || 0;
 
-  const newTransaction = {
-    id: txnId,
-    date: now.toISOString(),
-    items: state.cart.map(item => ({
-      productId: item.productId,
-      name: item.productName,
-      brand: item.brand || '',
-      quantity: item.quantity,
-      unit: item.unit,
-      unitPrice: item.unitPrice,
-      price: item.price
-    })),
-    subtotal: state.cartTotal,
-    total: state.cartTotal,
-    paymentMethod: state.paymentMethod
-  };
-
-  // Add to transactions (state and DB)
-  state.transactions.unshift(newTransaction);
-  await addTransaction(newTransaction);
-
-  // Deduct kg amounts from display for Feed products
-  for (const item of state.cart) {
-    if (item.kgAmount > 0) {
-      await deductFromDisplay(item.productId, item.kgAmount);
+    if (cash < state.cartTotal) {
+      showToast("Insufficient cash amount. Please collect the correct payment.");
+      cashInput.focus();
+      return;
     }
   }
 
-  // Clear cart and show success
-  state.cart = [];
-  updateCart();
-  closeCheckoutModal();
-  showToast("Transaction completed successfully!");
+  showLoading("Processing transaction...");
+
+  try {
+    // Create new transaction record
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const txnCount = state.transactions.filter(t => t.id.includes(dateStr)).length + 1;
+    const txnId = `TXN-${dateStr}-${String(txnCount).padStart(3, '0')}`;
+
+    const newTransaction = {
+      id: txnId,
+      date: now.toISOString(),
+      items: state.cart.map(item => ({
+        productId: item.productId,
+        name: item.productName,
+        brand: item.brand || '',
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        price: item.price
+      })),
+      subtotal: state.cartTotal,
+      total: state.cartTotal,
+      paymentMethod: state.paymentMethod
+    };
+
+    // Add to transactions (state and DB)
+    state.transactions.unshift(newTransaction);
+    await addTransaction(newTransaction);
+
+    // Deduct kg amounts from display for Feed products
+    for (const item of state.cart) {
+      if (item.kgAmount > 0) {
+        await deductFromDisplay(item.productId, item.kgAmount);
+      }
+    }
+
+    // Clear cart and show success
+    state.cart = [];
+    updateCart();
+    closeCheckoutModal();
+    hideLoading();
+    showToast("Transaction completed successfully!");
+  } catch (error) {
+    hideLoading();
+    console.error("Checkout error:", error);
+    showToast("Error processing transaction. Please try again.");
+  }
 }
 
 // ============================================
@@ -1767,14 +1805,16 @@ function formatTransactionDate(date) {
   }
 }
 
-function filterByDateRange(range) {
+function filterByDateRange(range, e) {
   state.salesHistoryFilter = range;
 
   // Update active button
   document.querySelectorAll(".date-filter-btn").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (e && e.target) {
+    e.target.classList.add("active");
+  }
 
   renderSalesHistory();
 }
@@ -2132,7 +2172,7 @@ function renderInventory(filter = currentInventoryFilter) {
       // Get display info for Feed products
       const displayCount = state.display.filter(d => d.productId === item.id).length;
       const displayKg = getDisplayKgForProduct(item.id);
-      const totalSacks = item.stockSack + displayCount; // Total = stored + on display
+      const totalSacks = item.stockSacks + displayCount; // Total = stored + on display
 
       return `
         <div class="inventory-card ${item.lowStock ? 'low-stock' : ''}">
@@ -2149,7 +2189,7 @@ function renderInventory(filter = currentInventoryFilter) {
             </div>
             <div class="stock-row">
               <span class="stock-label">In Storage</span>
-              <span class="stock-value ${item.stockSack < 5 ? 'warning' : ''}">${item.stockSack} Sacks</span>
+              <span class="stock-value ${item.stockSacks < 5 ? 'warning' : ''}">${item.stockSacks} Sacks</span>
             </div>
             <div class="stock-row display-row">
               <span class="stock-label">On Display</span>
@@ -2181,14 +2221,16 @@ function renderInventory(filter = currentInventoryFilter) {
   }).join("");
 }
 
-function filterInventory(category) {
+function filterInventory(category, e) {
   currentInventoryFilter = category;
 
   // Update filter buttons
   document.querySelectorAll(".inventory-filter .filter-btn").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (e && e.target) {
+    e.target.classList.add("active");
+  }
 
   renderInventory(category);
 }
@@ -2275,7 +2317,7 @@ function openAddDisplayModal() {
   select.innerHTML = '<option value="">-- Select a feed product --</option>' +
     feedProducts.map(p => {
       const inv = state.inventory.find(i => i.id === p.id);
-      const availableSacks = inv ? inv.stockSack : 0;
+      const availableSacks = inv ? inv.stockSacks : 0;
       // Check how many are already on display
       const onDisplay = state.display.filter(d => d.productId === p.id).length;
       const remaining = availableSacks - onDisplay;
@@ -2300,7 +2342,7 @@ function openAddDisplayModal() {
 
       document.getElementById("display-info-name").textContent = product.name;
       document.getElementById("display-info-kg").textContent = `${product.kgPerSack || 25} kg`;
-      document.getElementById("display-info-stock").textContent = `${inv ? inv.stockSack : 0} sacks`;
+      document.getElementById("display-info-stock").textContent = `${inv ? inv.stockSacks : 0} sacks`;
       document.getElementById("display-product-info").style.display = "block";
     } else {
       document.getElementById("display-product-info").style.display = "none";
@@ -2331,14 +2373,14 @@ async function addToDisplay() {
   const product = state.products.find(p => p.id === productId);
   const inv = state.inventory.find(i => i.id === productId);
 
-  if (!inv || inv.stockSack <= 0) {
+  if (!inv || inv.stockSacks <= 0) {
     showToast("No stock available");
     return;
   }
 
   // Check if we have available sacks (not already on display)
   const onDisplay = state.display.filter(d => d.productId === productId).length;
-  if (onDisplay >= inv.stockSack) {
+  if (onDisplay >= inv.stockSacks) {
     showToast("All sacks are already on display");
     return;
   }
@@ -2359,9 +2401,9 @@ async function addToDisplay() {
   await addDisplay(newDisplay);
 
   // Update inventory - reduce stock sack by 1
-  inv.stockSack -= 1;
+  inv.stockSacks -= 1;
   inv.stockKg -= kgPerSack;
-  await updateInventory(productId, { stockSacks: inv.stockSack, stockKg: inv.stockKg });
+  await updateInventory(productId, { stockSacks: inv.stockSacks, stockKg: inv.stockKg });
 
   renderDisplay();
   renderInventory();
@@ -2437,14 +2479,16 @@ async function deductFromDisplay(productId, kgAmount) {
 
 let currentProductsFilter = "all";
 
-function filterProductsTable(category) {
+function filterProductsTable(category, e) {
   currentProductsFilter = category;
 
   // Update filter buttons
   document.querySelectorAll(".products-filter .filter-btn").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (e && e.target) {
+    e.target.classList.add("active");
+  }
 
   renderProductsTable(category);
 }
@@ -2576,12 +2620,34 @@ async function saveProduct() {
   const brand = document.getElementById("edit-product-brand").value.trim();
   const category = document.getElementById("edit-product-category").value;
 
+  // Validate required fields
   if (!name) {
     showToast("Please enter a product name");
     return;
   }
 
-  // No icons needed
+  if (!category) {
+    showToast("Please select a category");
+    return;
+  }
+
+  // Validate pricing based on category
+  if (category === "Feed") {
+    const pricePerKg = parseFloat(document.getElementById("edit-price-per-kg").value) || 0;
+    const pricePerSack = parseFloat(document.getElementById("edit-price-per-sack").value) || 0;
+
+    if (pricePerKg <= 0 && pricePerSack <= 0) {
+      showToast("Please enter at least one price (per kg or per sack)");
+      return;
+    }
+  } else {
+    const pricePerPiece = parseFloat(document.getElementById("edit-price-per-piece").value) || 0;
+
+    if (pricePerPiece <= 0) {
+      showToast("Please enter a price per piece");
+      return;
+    }
+  }
 
   // Get wholesale field values
   const costPrice = parseFloat(document.getElementById("edit-cost-price").value) || 0;
@@ -2684,6 +2750,33 @@ function showToast(message) {
 }
 
 // ============================================
+// Loading Overlay
+// ============================================
+
+function showLoading(text = "Processing...") {
+  const overlay = document.getElementById("loading-overlay");
+  const loadingText = overlay.querySelector(".loading-text");
+  loadingText.textContent = text;
+  overlay.classList.add("active");
+}
+
+function hideLoading() {
+  document.getElementById("loading-overlay").classList.remove("active");
+}
+
+// ============================================
+// Number Formatting Helper
+// ============================================
+
+function formatCurrency(amount) {
+  return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatNumber(num) {
+  return num.toLocaleString('en-PH');
+}
+
+// ============================================
 // Ava AI Functions
 // ============================================
 
@@ -2706,14 +2799,16 @@ function refreshAvaAI() {
 
 let currentAvaFilter = "all";
 
-function filterAvaAI(feature) {
+function filterAvaAI(feature, e) {
   currentAvaFilter = feature;
 
   // Update filter buttons
   document.querySelectorAll(".ava-filter .filter-btn").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (e && e.target) {
+    e.target.classList.add("active");
+  }
 
   // Get all Ava AI sections with data-feature attribute
   const sections = document.querySelectorAll("[data-feature]");
@@ -2738,12 +2833,12 @@ function renderStockAlerts() {
 
   // Calculate days until stock out based on simulated daily sales
   const stockAlerts = state.inventory
-    .filter(item => item.lowStock || (item.stockUnits && item.stockUnits < 20) || (item.stockSack && item.stockSack < 5))
+    .filter(item => item.lowStock || (item.stockUnits && item.stockUnits < 20) || (item.stockSacks && item.stockSacks < 5))
     .map(item => {
       const product = state.products.find(p => p.id === item.id);
       // Simulate daily sales velocity
       const dailySales = Math.random() * 3 + 1;
-      const currentStock = item.stockUnits || (item.stockSack * (product?.kgPerSack || 25));
+      const currentStock = item.stockUnits || (item.stockSacks * (product?.kgPerSack || 25));
       const daysUntilOut = Math.floor(currentStock / dailySales);
 
       return {
@@ -2766,7 +2861,7 @@ function renderStockAlerts() {
       <div class="alert-product">
         <div class="alert-info">
           <span class="alert-name">${alert.name}</span>
-          <span class="alert-stock">${alert.stockUnits ? alert.stockUnits + ' units' : alert.stockSack + ' sacks'} remaining</span>
+          <span class="alert-stock">${alert.stockUnits ? alert.stockUnits + ' units' : alert.stockSacks + ' sacks'} remaining</span>
         </div>
       </div>
       <div class="alert-forecast">
@@ -2811,7 +2906,7 @@ function renderReorderSuggestions() {
       <div class="reorder-product">
         <div class="reorder-info">
           <span class="reorder-name">${item.name}</span>
-          <span class="reorder-current">Current: ${item.stockUnits || item.stockSack} ${item.unit}</span>
+          <span class="reorder-current">Current: ${item.stockUnits || item.stockSacks} ${item.unit}</span>
         </div>
       </div>
       <div class="reorder-suggestion">
@@ -2841,7 +2936,7 @@ function renderProfitInsights() {
     const inv = state.inventory.find(i => i.id === product.id);
     if (!inv) return;
 
-    const stock = inv.stockUnits || inv.stockSack || 0;
+    const stock = inv.stockUnits || inv.stockSacks || 0;
     const retailPrice = product.pricePerPiece || product.pricePerSack || 0;
     const costPrice = product.costPrice || retailPrice * 0.7;
 

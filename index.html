@@ -336,13 +336,13 @@
                 </span>
               </div>
               <div class="category-filter">
-                <button class="filter-btn active" onclick="filterProducts('all')">All</button>
-                <button class="filter-btn" onclick="filterProducts('Feed')">Feeds</button>
-                <button class="filter-btn" onclick="filterProducts('Medicine')">Medicines</button>
-                <button class="filter-btn" onclick="filterProducts('Vitamins')">Vitamins</button>
-                <button class="filter-btn" onclick="filterProducts('Accessories')">Accessories</button>
-                <button class="filter-btn" onclick="filterProducts('Grooming')">Grooming</button>
-                <button class="filter-btn" onclick="filterProducts('Treats')">Treats</button>
+                <button class="filter-btn active" onclick="filterProducts('all', event)">All</button>
+                <button class="filter-btn" onclick="filterProducts('Feed', event)">Feeds</button>
+                <button class="filter-btn" onclick="filterProducts('Medicine', event)">Medicines</button>
+                <button class="filter-btn" onclick="filterProducts('Vitamins', event)">Vitamins</button>
+                <button class="filter-btn" onclick="filterProducts('Accessories', event)">Accessories</button>
+                <button class="filter-btn" onclick="filterProducts('Grooming', event)">Grooming</button>
+                <button class="filter-btn" onclick="filterProducts('Treats', event)">Treats</button>
               </div>
             </div>
             <div class="product-grid" id="product-grid">
@@ -396,10 +396,10 @@
         <!-- Date Filter Buttons -->
         <div class="sales-history-filters">
           <div class="date-filter-buttons">
-            <button class="date-filter-btn active" onclick="filterByDateRange('today')">Today</button>
-            <button class="date-filter-btn" onclick="filterByDateRange('week')">This Week</button>
-            <button class="date-filter-btn" onclick="filterByDateRange('month')">This Month</button>
-            <button class="date-filter-btn" onclick="filterByDateRange('all')">All Time</button>
+            <button class="date-filter-btn active" onclick="filterByDateRange('today', event)">Today</button>
+            <button class="date-filter-btn" onclick="filterByDateRange('week', event)">This Week</button>
+            <button class="date-filter-btn" onclick="filterByDateRange('month', event)">This Month</button>
+            <button class="date-filter-btn" onclick="filterByDateRange('all', event)">All Time</button>
           </div>
           <div class="sales-history-search-row">
             <div class="sales-search-bar">
@@ -463,14 +463,14 @@
           </div>
         </div>
         <div class="inventory-filter">
-          <button class="filter-btn active" onclick="filterInventory('all')">All</button>
-          <button class="filter-btn" onclick="filterInventory('Feed')">Feeds</button>
-          <button class="filter-btn" onclick="filterInventory('Medicine')">Medicines</button>
-          <button class="filter-btn" onclick="filterInventory('Vitamins')">Vitamins</button>
-          <button class="filter-btn" onclick="filterInventory('Accessories')">Accessories</button>
-          <button class="filter-btn" onclick="filterInventory('Grooming')">Grooming</button>
-          <button class="filter-btn" onclick="filterInventory('Treats')">Treats</button>
-          <button class="filter-btn low-stock-filter" onclick="filterInventory('lowstock')">Low Stock</button>
+          <button class="filter-btn active" onclick="filterInventory('all', event)">All</button>
+          <button class="filter-btn" onclick="filterInventory('Feed', event)">Feeds</button>
+          <button class="filter-btn" onclick="filterInventory('Medicine', event)">Medicines</button>
+          <button class="filter-btn" onclick="filterInventory('Vitamins', event)">Vitamins</button>
+          <button class="filter-btn" onclick="filterInventory('Accessories', event)">Accessories</button>
+          <button class="filter-btn" onclick="filterInventory('Grooming', event)">Grooming</button>
+          <button class="filter-btn" onclick="filterInventory('Treats', event)">Treats</button>
+          <button class="filter-btn low-stock-filter" onclick="filterInventory('lowstock', event)">Low Stock</button>
         </div>
         <div class="inventory-grid" id="inventory-grid">
           <!-- Inventory items loaded via JS -->
@@ -484,13 +484,13 @@
           <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
         </div>
         <div class="products-filter">
-          <button class="filter-btn active" onclick="filterProductsTable('all')">All</button>
-          <button class="filter-btn" onclick="filterProductsTable('Feed')">Feeds</button>
-          <button class="filter-btn" onclick="filterProductsTable('Medicine')">Medicines</button>
-          <button class="filter-btn" onclick="filterProductsTable('Vitamins')">Vitamins</button>
-          <button class="filter-btn" onclick="filterProductsTable('Accessories')">Accessories</button>
-          <button class="filter-btn" onclick="filterProductsTable('Grooming')">Grooming</button>
-          <button class="filter-btn" onclick="filterProductsTable('Treats')">Treats</button>
+          <button class="filter-btn active" onclick="filterProductsTable('all', event)">All</button>
+          <button class="filter-btn" onclick="filterProductsTable('Feed', event)">Feeds</button>
+          <button class="filter-btn" onclick="filterProductsTable('Medicine', event)">Medicines</button>
+          <button class="filter-btn" onclick="filterProductsTable('Vitamins', event)">Vitamins</button>
+          <button class="filter-btn" onclick="filterProductsTable('Accessories', event)">Accessories</button>
+          <button class="filter-btn" onclick="filterProductsTable('Grooming', event)">Grooming</button>
+          <button class="filter-btn" onclick="filterProductsTable('Treats', event)">Treats</button>
         </div>
         <div class="products-table-container">
           <table class="products-table">
@@ -535,14 +535,14 @@
 
         <!-- Ava AI Filter -->
         <div class="ava-filter">
-          <button class="filter-btn active" onclick="filterAvaAI('all')">All Insights</button>
-          <button class="filter-btn" onclick="filterAvaAI('forecast')">Sales Forecast</button>
-          <button class="filter-btn" onclick="filterAvaAI('stockout')">Stock Out</button>
-          <button class="filter-btn" onclick="filterAvaAI('reorder')">Reorder</button>
-          <button class="filter-btn" onclick="filterAvaAI('profit')">Profit</button>
-          <button class="filter-btn" onclick="filterAvaAI('recommendations')">Recommendations</button>
-          <button class="filter-btn" onclick="filterAvaAI('cannibalization')">Cannibalization</button>
-          <button class="filter-btn" onclick="filterAvaAI('trending')">Trending</button>
+          <button class="filter-btn active" onclick="filterAvaAI('all', event)">All Insights</button>
+          <button class="filter-btn" onclick="filterAvaAI('forecast', event)">Sales Forecast</button>
+          <button class="filter-btn" onclick="filterAvaAI('stockout', event)">Stock Out</button>
+          <button class="filter-btn" onclick="filterAvaAI('reorder', event)">Reorder</button>
+          <button class="filter-btn" onclick="filterAvaAI('profit', event)">Profit</button>
+          <button class="filter-btn" onclick="filterAvaAI('recommendations', event)">Recommendations</button>
+          <button class="filter-btn" onclick="filterAvaAI('cannibalization', event)">Cannibalization</button>
+          <button class="filter-btn" onclick="filterAvaAI('trending', event)">Trending</button>
         </div>
 
         <!-- AI Insights Grid -->
@@ -951,6 +951,12 @@
   <!-- Success Toast -->
   <div id="toast" class="toast">
     <span id="toast-message">Success!</span>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <span class="loading-text">Processing...</span>
   </div>
 
   <!-- Dexie.js for IndexedDB -->
