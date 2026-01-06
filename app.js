@@ -770,10 +770,10 @@ let state = {
   paymentMethod: "Cash",
   darkMode: false,
   storeName: APP_DATA.storeName,
-  products: [...PRODUCTS],
-  inventory: [...INVENTORY],
-  display: [...DISPLAY],
-  transactions: [...TRANSACTIONS],
+  products: [],
+  inventory: [],
+  display: [],
+  transactions: [],
   editingProductId: null,
   posSearchTerm: "",
   posCurrentCategory: "all",
@@ -790,36 +790,59 @@ document.addEventListener("DOMContentLoaded", () => {
   initApp();
 });
 
-function initApp() {
-  // Load saved preferences
-  loadPreferences();
+async function initApp() {
+  try {
+    // Initialize database with default data if first time
+    await initializeDatabase();
 
-  // Set up navigation
-  setupNavigation();
+    // Load data from IndexedDB
+    await loadDataFromDB();
 
-  // Render initial content
-  renderProducts();
-  renderInventory();
-  renderProductsTable();
-  renderDisplay();
+    // Load saved preferences
+    await loadPreferences();
 
-  // Initialize Sales Overview (dynamic year/month)
-  initSalesOverview();
+    // Set up navigation
+    setupNavigation();
 
-  // Initialize Notifications
-  generateNotifications();
+    // Render initial content
+    renderProducts();
+    renderInventory();
+    renderProductsTable();
+    renderDisplay();
 
-  // Update time
-  updateTime();
-  setInterval(updateTime, 1000);
+    // Initialize Sales Overview (dynamic year/month)
+    initSalesOverview();
 
-  // Register service worker
-  registerServiceWorker();
+    // Initialize Notifications
+    generateNotifications();
 
-  // Check for install prompt
-  setupInstallPrompt();
+    // Update time
+    updateTime();
+    setInterval(updateTime, 1000);
 
-  console.log("FlyHighManarang PWA initialized!");
+    // Register service worker
+    registerServiceWorker();
+
+    // Check for install prompt
+    setupInstallPrompt();
+
+    console.log("FlyHighManarang PWA initialized with Dexie!");
+  } catch (error) {
+    console.error("Error initializing app:", error);
+    showToast("Error loading data. Please refresh.");
+  }
+}
+
+// Load all data from IndexedDB into state
+async function loadDataFromDB() {
+  state.products = await getAllProducts();
+  state.inventory = await getAllInventory();
+  state.display = await getAllDisplay();
+  state.transactions = await getAllTransactions();
+
+  // Update dashboard counts
+  document.getElementById("total-products").textContent = state.products.length;
+  document.getElementById("low-stock-items").textContent = state.inventory.filter(i => i.lowStock).length;
 }
 
 function loadPreferences() {
@@ -1579,7 +1602,7 @@ function closeCheckoutModal() {
   document.getElementById("checkout-modal").classList.remove("active");
 }
 
-function confirmCheckout() {
+async function confirmCheckout() {
   // Create new transaction record
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -1603,15 +1626,16 @@ function confirmCheckout() {
     paymentMethod: state.paymentMethod
   };
 
-  // Add to transactions
+  // Add to transactions (state and DB)
   state.transactions.unshift(newTransaction);
+  await addTransaction(newTransaction);
 
   // Deduct kg amounts from display for Feed products
-  state.cart.forEach(item => {
+  for (const item of state.cart) {
     if (item.kgAmount > 0) {
-      deductFromDisplay(item.productId, item.kgAmount);
+      await deductFromDisplay(item.productId, item.kgAmount);
     }
-  });
+  }
 
   // Clear cart and show success
   state.cart = [];
@@ -2290,7 +2314,7 @@ function closeAddDisplayModal() {
   document.getElementById("add-display-modal").classList.remove("active");
 }
 
-function addToDisplay() {
+async function addToDisplay() {
   const productId = parseInt(document.getElementById("display-product-select").value);
   const displayDate = document.getElementById("display-date").value;
 
@@ -2332,10 +2356,12 @@ function addToDisplay() {
   };
 
   state.display.push(newDisplay);
+  await addDisplay(newDisplay);
 
   // Update inventory - reduce stock sack by 1
   inv.stockSack -= 1;
   inv.stockKg -= kgPerSack;
+  await updateInventory(productId, { stockSacks: inv.stockSack, stockKg: inv.stockKg });
 
   renderDisplay();
   renderInventory();
@@ -2343,7 +2369,7 @@ function addToDisplay() {
   showToast(`${product.name} added to display (${kgPerSack} kg)`);
 }
 
-function removeFromDisplay(displayId) {
+async function removeFromDisplay(displayId) {
   const displayItem = state.display.find(d => d.id === displayId);
 
   if (!displayItem) return;
@@ -2354,8 +2380,9 @@ function removeFromDisplay(displayId) {
     }
   }
 
-  // Remove from display
+  // Remove from display (state and DB)
   state.display = state.display.filter(d => d.id !== displayId);
+  await deleteDisplay(displayId);
 
   renderDisplay();
   showToast("Display removed");
@@ -2369,7 +2396,7 @@ function getDisplayKgForProduct(productId) {
 }
 
 // Deduct kg from display (used by POS)
-function deductFromDisplay(productId, kgAmount) {
+async function deductFromDisplay(productId, kgAmount) {
   let remaining = kgAmount;
 
   // Sort displays by date (oldest first) to use FIFO
@@ -2383,13 +2410,21 @@ function deductFromDisplay(productId, kgAmount) {
     if (display.remainingKg >= remaining) {
       display.remainingKg -= remaining;
       remaining = 0;
+      // Update in DB
+      await updateDisplay(display.id, { remainingKg: display.remainingKg });
     } else {
       remaining -= display.remainingKg;
       display.remainingKg = 0;
+      // Update in DB
+      await updateDisplay(display.id, { remainingKg: 0 });
     }
   }
 
-  // Remove empty displays
+  // Remove empty displays from state and DB
+  const emptyDisplays = state.display.filter(d => d.remainingKg <= 0);
+  for (const empty of emptyDisplays) {
+    await deleteDisplay(empty.id);
+  }
   state.display = state.display.filter(d => d.remainingKg > 0);
 
   renderDisplay();
@@ -2507,12 +2542,13 @@ function editProduct(productId) {
   document.getElementById("edit-product-modal").classList.add("active");
 }
 
-function deleteProduct(productId) {
-  if (confirm("Are you sure you want to delete this product? (Demo only - will reset on refresh)")) {
+async function deleteProduct(productId) {
+  if (confirm("Are you sure you want to delete this product?")) {
     state.products = state.products.filter(p => p.id !== productId);
+    await deleteProductFromDB(productId);
     renderProductsTable();
     renderProducts();
-    showToast("Product deleted (Demo)");
+    showToast("Product deleted");
   }
 }
 
@@ -2535,7 +2571,7 @@ document.getElementById("edit-product-category")?.addEventListener("change", (e)
   togglePricingFields(e.target.value);
 });
 
-function saveProduct() {
+async function saveProduct() {
   const name = document.getElementById("edit-product-name").value.trim();
   const brand = document.getElementById("edit-product-brand").value.trim();
   const category = document.getElementById("edit-product-category").value;
@@ -2579,8 +2615,10 @@ function saveProduct() {
         delete product.pricePerSack;
         delete product.kgPerSack;
       }
+      // Persist to DB
+      await updateProduct(state.editingProductId, product);
     }
-    showToast("Product updated (Demo)");
+    showToast("Product updated");
   } else {
     // Add new
     const newProduct = {
@@ -2606,7 +2644,8 @@ function saveProduct() {
     }
 
     state.products.push(newProduct);
-    showToast("Product added (Demo)");
+    await addProduct(newProduct);
+    showToast("Product added");
   }
 
   renderProductsTable();
