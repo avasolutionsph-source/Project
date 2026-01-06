@@ -15,6 +15,16 @@ db.version(1).stores({
   settings: 'key'
 });
 
+// Version 2: Add users table for authentication
+db.version(2).stores({
+  products: '++id, name, brand, category',
+  inventory: 'id, name, category, lowStock',
+  display: '++id, productId, openedDate',
+  transactions: 'id, date, paymentMethod',
+  settings: 'key',
+  users: '++id, username'
+});
+
 // Default data flag
 const DB_INITIALIZED_KEY = 'flyhigh_db_initialized';
 
@@ -346,6 +356,32 @@ async function getSetting(key) {
 
 async function setSetting(key, value) {
   return await db.settings.put({ key, value });
+}
+
+// Users
+async function getAllUsers() {
+  return await db.users.toArray();
+}
+
+async function getUserByUsername(username) {
+  return await db.users.where('username').equalsIgnoreCase(username).first();
+}
+
+async function addUser(user) {
+  return await db.users.add(user);
+}
+
+async function updateUser(id, changes) {
+  return await db.users.update(id, changes);
+}
+
+async function deleteUser(id) {
+  return await db.users.delete(id);
+}
+
+async function hasAnyUsers() {
+  const count = await db.users.count();
+  return count > 0;
 }
 
 console.log('Dexie database module loaded.');

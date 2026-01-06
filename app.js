@@ -779,7 +779,8 @@ let state = {
   posCurrentCategory: "all",
   salesHistoryFilter: "today",
   salesHistoryPayment: "all",
-  salesHistorySearch: ""
+  salesHistorySearch: "",
+  currentUser: null
 };
 
 // ============================================
@@ -795,42 +796,252 @@ async function initApp() {
     // Initialize database with default data if first time
     await initializeDatabase();
 
-    // Load data from IndexedDB
-    await loadDataFromDB();
+    // Check authentication status
+    await checkAuthStatus();
 
-    // Load saved preferences
-    await loadPreferences();
-
-    // Set up navigation
-    setupNavigation();
-
-    // Render initial content
-    renderProducts();
-    renderInventory();
-    renderProductsTable();
-    renderDisplay();
-
-    // Initialize Sales Overview (dynamic year/month)
-    initSalesOverview();
-
-    // Initialize Notifications
-    generateNotifications();
-
-    // Update time
-    updateTime();
-    setInterval(updateTime, 1000);
-
-    // Register service worker
-    registerServiceWorker();
-
-    // Check for install prompt
-    setupInstallPrompt();
-
-    console.log("FlyHighManarang PWA initialized with Dexie!");
   } catch (error) {
     console.error("Error initializing app:", error);
     showToast("Error loading data. Please refresh.");
   }
+}
+
+// Check if user is logged in or needs to set up account
+async function checkAuthStatus() {
+  const hasUsers = await hasAnyUsers();
+  const savedUser = localStorage.getItem('flyhigh_current_user');
+
+  if (!hasUsers) {
+    // First time - show setup form
+    showSetupForm();
+  } else if (savedUser) {
+    // User was previously logged in
+    const user = JSON.parse(savedUser);
+    state.currentUser = user;
+    await initializeMainApp();
+  } else {
+    // Show login form
+    showLoginForm();
+  }
+}
+
+// Show login form
+function showLoginForm() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('setup-form').style.display = 'none';
+  document.getElementById('login-error').classList.remove('show');
+}
+
+// Show setup form (first time)
+function showSetupForm() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('setup-form').style.display = 'block';
+  document.getElementById('setup-error').classList.remove('show');
+}
+
+// Handle login form submission
+async function handleLogin(event) {
+  event.preventDefault();
+
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+
+  if (!username || !password) {
+    errorEl.textContent = 'Please enter username and password';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  const user = await getUserByUsername(username);
+
+  if (!user) {
+    errorEl.textContent = 'Invalid username or password';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  // Simple password check (in a real app, use proper hashing)
+  if (user.password !== password) {
+    errorEl.textContent = 'Invalid username or password';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  // Login successful
+  state.currentUser = { id: user.id, username: user.username, role: user.role };
+  localStorage.setItem('flyhigh_current_user', JSON.stringify(state.currentUser));
+
+  errorEl.classList.remove('show');
+  await initializeMainApp();
+}
+
+// Handle first-time setup
+async function handleSetup(event) {
+  event.preventDefault();
+
+  const username = document.getElementById('setup-username').value.trim();
+  const password = document.getElementById('setup-password').value;
+  const confirm = document.getElementById('setup-confirm').value;
+  const errorEl = document.getElementById('setup-error');
+
+  if (!username || !password || !confirm) {
+    errorEl.textContent = 'Please fill in all fields';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  if (username.length < 3) {
+    errorEl.textContent = 'Username must be at least 3 characters';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  if (password.length < 4) {
+    errorEl.textContent = 'Password must be at least 4 characters';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  if (password !== confirm) {
+    errorEl.textContent = 'Passwords do not match';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  try {
+    // Create admin user
+    await addUser({
+      username: username,
+      password: password,
+      role: 'admin',
+      createdAt: new Date().toISOString()
+    });
+
+    // Auto-login after setup
+    const newUser = await getUserByUsername(username);
+    state.currentUser = { id: newUser.id, username: newUser.username, role: newUser.role };
+    localStorage.setItem('flyhigh_current_user', JSON.stringify(state.currentUser));
+
+    errorEl.classList.remove('show');
+    showToast('Account created! Welcome to FlyHighManarang');
+    await initializeMainApp();
+  } catch (error) {
+    console.error('Error creating user:', error);
+    errorEl.textContent = 'Error creating account. Please try again.';
+    errorEl.classList.add('show');
+  }
+}
+
+// Toggle password visibility
+function togglePasswordVisibility(inputId) {
+  const input = document.getElementById(inputId);
+  const btn = input.parentElement.querySelector('.toggle-password');
+
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+      <line x1="1" y1="1" x2="23" y2="23"></line>
+    </svg>`;
+  } else {
+    input.type = 'password';
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>`;
+  }
+}
+
+// Logout
+function logout() {
+  if (!confirm('Are you sure you want to logout?')) return;
+
+  state.currentUser = null;
+  localStorage.removeItem('flyhigh_current_user');
+  showLoginForm();
+  showToast('Logged out successfully');
+}
+
+// Initialize main app after successful login
+async function initializeMainApp() {
+  // Hide login, show app
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  // Load data from IndexedDB
+  await loadDataFromDB();
+
+  // Load saved preferences
+  await loadPreferences();
+
+  // Set up navigation
+  setupNavigation();
+
+  // Render initial content
+  renderProducts();
+  renderInventory();
+  renderProductsTable();
+  renderDisplay();
+
+  // Update user menu
+  renderUserMenu();
+
+  // Initialize Sales Overview (dynamic year/month)
+  initSalesOverview();
+
+  // Initialize Notifications
+  generateNotifications();
+
+  // Update time
+  updateTime();
+  setInterval(updateTime, 1000);
+
+  // Register service worker
+  registerServiceWorker();
+
+  // Check for install prompt
+  setupInstallPrompt();
+
+  console.log("FlyHighManarang PWA initialized with Dexie!");
+}
+
+// Render user menu in sidebar
+function renderUserMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const existingMenu = sidebar.querySelector('.user-menu');
+
+  if (existingMenu) {
+    existingMenu.remove();
+  }
+
+  if (!state.currentUser) return;
+
+  const userInitial = state.currentUser.username.charAt(0).toUpperCase();
+  const userMenu = document.createElement('div');
+  userMenu.className = 'user-menu';
+  userMenu.innerHTML = `
+    <div class="user-info">
+      <div class="user-avatar">${userInitial}</div>
+      <div class="user-details">
+        <div class="user-name">${state.currentUser.username}</div>
+        <div class="user-role">${state.currentUser.role}</div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      Logout
+    </button>
+  `;
+
+  sidebar.appendChild(userMenu);
 }
 
 // Load all data from IndexedDB into state
