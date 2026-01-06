@@ -521,12 +521,12 @@
 
       <!-- Display Screen -->
       <section id="display-screen" class="screen">
+        <div class="screen-search-bar">
+          <input type="text" class="search-input" placeholder="Search display..." id="display-search" oninput="searchDisplay()">
+        </div>
         <div class="screen-header">
           <h2>Display Management</h2>
-          <div class="header-actions">
-            <input type="text" class="search-input" placeholder="Search display..." id="display-search" oninput="searchDisplay()">
-            <button class="btn-primary" onclick="openAddDisplayModal()">+ Add Display</button>
-          </div>
+          <button class="btn-primary" onclick="openAddDisplayModal()">+ Add Display</button>
         </div>
         <p class="display-description">Manage opened sacks for retail kg sales. When you sell by kg in POS, stock is deducted from display.</p>
         <div class="display-grid" id="display-grid">
@@ -536,11 +536,11 @@
 
       <!-- Inventory Screen -->
       <section id="inventory-screen" class="screen">
+        <div class="screen-search-bar">
+          <input type="text" class="search-input" placeholder="Search inventory..." id="inventory-search" oninput="searchInventory()">
+        </div>
         <div class="screen-header">
           <h2>Inventory Management</h2>
-          <div class="header-actions">
-            <input type="text" class="search-input" placeholder="Search inventory..." id="inventory-search" oninput="searchInventory()">
-          </div>
         </div>
         <div class="inventory-filter">
           <button class="filter-btn active" onclick="filterInventory('all', event)">All</button>
@@ -559,12 +559,12 @@
 
       <!-- Products Screen -->
       <section id="products-screen" class="screen">
+        <div class="screen-search-bar">
+          <input type="text" class="search-input" placeholder="Search products..." id="products-search" oninput="searchProductsTable()">
+        </div>
         <div class="screen-header">
           <h2>Product Management</h2>
-          <div class="header-actions">
-            <input type="text" class="search-input" placeholder="Search products..." id="products-search" oninput="searchProductsTable()">
-            <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
-          </div>
+          <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
         </div>
         <div class="products-filter">
           <button class="filter-btn active" onclick="filterProductsTable('all', event)">All</button>

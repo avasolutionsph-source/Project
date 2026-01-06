@@ -1166,6 +1166,18 @@ body {
 }
 
 /* Inventory Screen */
+/* Screen Search Bar - Above Title */
+.screen-search-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.screen-search-bar .search-input {
+  width: 300px;
+  max-width: 100%;
+}
+
 .screen-header {
   display: flex;
   justify-content: space-between;
