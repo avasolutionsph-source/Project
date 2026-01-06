@@ -806,6 +806,9 @@ function initApp() {
   // Initialize Sales Overview (dynamic year/month)
   initSalesOverview();
 
+  // Initialize Notifications
+  generateNotifications();
+
   // Update time
   updateTime();
   setInterval(updateTime, 1000);
@@ -1803,6 +1806,278 @@ function viewTransactionDetails(txnId) {
 
 function closeTransactionModal() {
   document.getElementById("transaction-detail-modal").classList.remove("active");
+}
+
+// ============================================
+// Notification System Functions
+// ============================================
+
+let notifications = [];
+
+function generateNotifications() {
+  notifications = [];
+  const now = new Date();
+
+  // 1. Low Stock Alerts (Critical)
+  const lowStockItems = state.inventory.filter(item => item.lowStock);
+  if (lowStockItems.length > 0) {
+    // Add individual critical items
+    const criticalItems = lowStockItems.slice(0, 3); // Top 3 critical items
+    criticalItems.forEach(item => {
+      const stockDisplay = item.category === 'Feed'
+        ? `${item.stockKg} kg / ${item.stockSacks} sacks`
+        : `${item.stockUnits} units`;
+      notifications.push({
+        id: `lowstock-${item.id}`,
+        type: 'danger',
+        icon: '!',
+        title: 'Critical Low Stock',
+        message: `${item.name} is running low (${stockDisplay}). Restock soon!`,
+        time: now,
+        action: 'inventory',
+        read: false
+      });
+    });
+
+    // Summary notification if more items
+    if (lowStockItems.length > 3) {
+      notifications.push({
+        id: 'lowstock-summary',
+        type: 'warning',
+        icon: '!',
+        title: 'Low Stock Alert',
+        message: `${lowStockItems.length} items need restocking. Check inventory for details.`,
+        time: now,
+        action: 'inventory',
+        read: false
+      });
+    }
+  }
+
+  // 2. Display Stock Running Low
+  const lowDisplayItems = state.display.filter(d => {
+    const percentUsed = ((d.originalKg - d.remainingKg) / d.originalKg) * 100;
+    return percentUsed > 70;
+  });
+  if (lowDisplayItems.length > 0) {
+    lowDisplayItems.forEach(item => {
+      const product = state.products.find(p => p.id === item.productId);
+      notifications.push({
+        id: `display-${item.id}`,
+        type: 'warning',
+        icon: '!',
+        title: 'Display Stock Low',
+        message: `${product?.name || 'Product'} on display: Only ${item.remainingKg.toFixed(1)} kg remaining.`,
+        time: now,
+        action: 'display',
+        read: false
+      });
+    });
+  }
+
+  // 3. Today's Sales Summary
+  const todayTransactions = state.transactions.filter(txn => {
+    const txnDate = new Date(txn.date);
+    return txnDate.toDateString() === now.toDateString();
+  });
+  if (todayTransactions.length > 0) {
+    const todaySales = todayTransactions.reduce((sum, txn) => sum + txn.total, 0);
+    notifications.push({
+      id: 'today-sales',
+      type: 'success',
+      icon: '$',
+      title: "Today's Sales",
+      message: `You've made ${todayTransactions.length} sale(s) totaling ₱${todaySales.toLocaleString()} today.`,
+      time: now,
+      action: 'sales-history',
+      read: false
+    });
+  }
+
+  // 4. Best Seller Insight
+  const productSales = {};
+  state.transactions.forEach(txn => {
+    txn.items.forEach(item => {
+      if (!productSales[item.name]) {
+        productSales[item.name] = { count: 0, revenue: 0 };
+      }
+      productSales[item.name].count += item.quantity;
+      productSales[item.name].revenue += item.price;
+    });
+  });
+  const topProduct = Object.entries(productSales).sort((a, b) => b[1].revenue - a[1].revenue)[0];
+  if (topProduct) {
+    notifications.push({
+      id: 'top-seller',
+      type: 'info',
+      icon: '*',
+      title: 'Top Seller',
+      message: `${topProduct[0]} is your best seller with ₱${topProduct[1].revenue.toLocaleString()} in sales.`,
+      time: now,
+      action: 'products',
+      read: false
+    });
+  }
+
+  // 5. Wholesale Opportunity
+  const feedProducts = state.products.filter(p => p.category === 'Feed');
+  const highStockFeeds = state.inventory.filter(inv => {
+    const product = feedProducts.find(p => p.id === inv.id);
+    return product && inv.stockSacks >= 20 && !inv.lowStock;
+  });
+  if (highStockFeeds.length > 0) {
+    const product = state.products.find(p => p.id === highStockFeeds[0].id);
+    notifications.push({
+      id: 'wholesale-opportunity',
+      type: 'info',
+      icon: 'i',
+      title: 'Wholesale Opportunity',
+      message: `You have high stock of ${product?.name}. Consider promoting wholesale pricing!`,
+      time: now,
+      action: 'pos',
+      read: false
+    });
+  }
+
+  // 6. Recent Large Transaction
+  const recentLargeTxn = state.transactions.find(txn => txn.total >= 5000);
+  if (recentLargeTxn) {
+    const txnDate = new Date(recentLargeTxn.date);
+    notifications.push({
+      id: `large-txn-${recentLargeTxn.id}`,
+      type: 'success',
+      icon: '$',
+      title: 'Large Sale!',
+      message: `Transaction ${recentLargeTxn.id} was ₱${recentLargeTxn.total.toLocaleString()} - Great job!`,
+      time: txnDate,
+      action: 'sales-history',
+      read: false
+    });
+  }
+
+  // 7. Expiring Soon (Demo - for medicines)
+  const medicineItems = state.inventory.filter(inv => inv.category === 'Medicine');
+  if (medicineItems.length > 0) {
+    const randomMedicine = medicineItems[Math.floor(Math.random() * medicineItems.length)];
+    const product = state.products.find(p => p.id === randomMedicine.id);
+    notifications.push({
+      id: 'expiry-warning',
+      type: 'warning',
+      icon: '!',
+      title: 'Expiry Reminder',
+      message: `Check expiry dates for ${product?.name}. Medicines should be sold first!`,
+      time: now,
+      action: 'inventory',
+      read: false
+    });
+  }
+
+  // Sort by time (newest first)
+  notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  // Update badge and render
+  updateNotificationBadge();
+  renderNotifications();
+}
+
+function updateNotificationBadge() {
+  const badge = document.getElementById("notification-badge");
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+function renderNotifications() {
+  const container = document.getElementById("notification-list");
+
+  if (notifications.length === 0) {
+    container.innerHTML = `
+      <div class="no-notifications">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <p>No notifications</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = notifications.map(notif => `
+    <div class="notification-item ${notif.read ? '' : 'unread'}" onclick="handleNotificationClick('${notif.id}', '${notif.action}')">
+      <div class="notification-icon ${notif.type}">${notif.icon}</div>
+      <div class="notification-content">
+        <div class="notification-title">${notif.title}</div>
+        <div class="notification-message">${notif.message}</div>
+        <div class="notification-time">${formatNotificationTime(notif.time)}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function formatNotificationTime(time) {
+  const now = new Date();
+  const notifTime = new Date(time);
+  const diffMs = now - notifTime;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+}
+
+function toggleNotifications() {
+  const dropdown = document.getElementById("notification-dropdown");
+  dropdown.classList.toggle("active");
+
+  // Close when clicking outside
+  if (dropdown.classList.contains("active")) {
+    setTimeout(() => {
+      document.addEventListener("click", closeNotificationsOnClickOutside);
+    }, 10);
+  }
+}
+
+function closeNotificationsOnClickOutside(e) {
+  const dropdown = document.getElementById("notification-dropdown");
+  const wrapper = document.querySelector(".notification-wrapper");
+
+  if (!wrapper.contains(e.target)) {
+    dropdown.classList.remove("active");
+    document.removeEventListener("click", closeNotificationsOnClickOutside);
+  }
+}
+
+function handleNotificationClick(notifId, action) {
+  // Mark as read
+  const notif = notifications.find(n => n.id === notifId);
+  if (notif) {
+    notif.read = true;
+    updateNotificationBadge();
+    renderNotifications();
+  }
+
+  // Close dropdown
+  document.getElementById("notification-dropdown").classList.remove("active");
+
+  // Navigate to relevant screen
+  if (action) {
+    navigateTo(action);
+  }
+}
+
+function markAllAsRead() {
+  notifications.forEach(n => n.read = true);
+  updateNotificationBadge();
+  renderNotifications();
 }
 
 // ============================================
