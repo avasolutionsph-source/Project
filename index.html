@@ -803,6 +803,23 @@
         <button class="modal-close" onclick="closeEditProductModal()">x</button>
       </div>
       <div class="modal-body">
+        <!-- Product Image Upload -->
+        <div class="form-group image-upload-group">
+          <label>Product Image</label>
+          <div class="image-upload-container">
+            <div class="image-preview" id="product-image-preview">
+              <span class="no-image-text">No image</span>
+            </div>
+            <div class="image-upload-actions">
+              <label for="edit-product-image" class="btn-upload">
+                Choose Image
+                <input type="file" id="edit-product-image" accept="image/*" onchange="handleProductImageUpload(event)" hidden>
+              </label>
+              <button type="button" class="btn-remove-image" onclick="removeProductImage()" style="display: none;">Remove</button>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="edit-product-name">Product Name</label>
           <input type="text" id="edit-product-name" placeholder="Enter product name">

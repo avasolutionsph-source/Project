@@ -802,6 +802,9 @@ function renderProducts(filter = "all", searchTerm = "") {
 
   grid.innerHTML = filteredProducts.map(product => `
     <div class="product-card" onclick="selectProduct(${product.id})">
+      ${product.image
+        ? `<div class="product-image"><img src="${product.image}" alt="${product.name}"></div>`
+        : ''}
       <div class="product-name">${product.name}</div>
       <div class="product-brand">${product.brand || ''}</div>
       <div class="product-category">${product.category}</div>
@@ -2222,7 +2225,12 @@ function renderProductsTable(filter = "all") {
     return `
     <tr>
       <td>${product.id}</td>
-      <td>${product.name}</td>
+      <td class="product-name-cell">
+        ${product.image
+          ? `<img src="${product.image}" alt="${product.name}" class="table-product-image">`
+          : '<div class="table-product-no-image">No img</div>'}
+        <span>${product.name}</span>
+      </td>
       <td>${product.brand || '-'}</td>
       <td>${product.category}</td>
       <td class="pricing-cell">
@@ -2244,6 +2252,98 @@ function renderProductsTable(filter = "all") {
   `}).join("");
 }
 
+// Current product image data (base64)
+let currentProductImage = null;
+
+// Handle product image upload
+function handleProductImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showToast("Please select an image file");
+    return;
+  }
+
+  // Validate file size (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showToast("Image must be less than 2MB");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Resize image to save space in IndexedDB
+    resizeImage(e.target.result, 300, 300, (resizedImage) => {
+      currentProductImage = resizedImage;
+      updateImagePreview(resizedImage);
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// Resize image to max dimensions while maintaining aspect ratio
+function resizeImage(dataUrl, maxWidth, maxHeight, callback) {
+  const img = new Image();
+  img.onload = function() {
+    let width = img.width;
+    let height = img.height;
+
+    // Calculate new dimensions
+    if (width > height) {
+      if (width > maxWidth) {
+        height = Math.round(height * maxWidth / width);
+        width = maxWidth;
+      }
+    } else {
+      if (height > maxHeight) {
+        width = Math.round(width * maxHeight / height);
+        height = maxHeight;
+      }
+    }
+
+    // Create canvas and resize
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // Convert to base64 with compression
+    callback(canvas.toDataURL('image/jpeg', 0.7));
+  };
+  img.src = dataUrl;
+}
+
+// Update image preview in modal
+function updateImagePreview(imageData) {
+  const preview = document.getElementById("product-image-preview");
+  const removeBtn = document.querySelector(".btn-remove-image");
+
+  if (imageData) {
+    preview.innerHTML = `<img src="${imageData}" alt="Product preview">`;
+    removeBtn.style.display = "block";
+  } else {
+    preview.innerHTML = `<span class="no-image-text">No image</span>`;
+    removeBtn.style.display = "none";
+  }
+}
+
+// Remove product image
+function removeProductImage() {
+  currentProductImage = null;
+  document.getElementById("edit-product-image").value = "";
+  updateImagePreview(null);
+}
+
+// Clear image state when modal opens
+function clearProductImageState() {
+  currentProductImage = null;
+  document.getElementById("edit-product-image").value = "";
+  updateImagePreview(null);
+}
+
 function openProductModal() {
   state.editingProductId = null;
   document.getElementById("edit-modal-title").textContent = "Add New Product";
@@ -2260,6 +2360,8 @@ function openProductModal() {
   document.getElementById("edit-cost-price").value = "";
   document.getElementById("edit-wholesale-price").value = "";
   document.getElementById("edit-wholesale-min").value = "";
+  // Clear image
+  clearProductImageState();
 
   togglePricingFields("Feed");
   document.getElementById("edit-product-modal").classList.add("active");
@@ -2290,6 +2392,10 @@ function editProduct(productId) {
   document.getElementById("edit-cost-price").value = product.costPrice || "";
   document.getElementById("edit-wholesale-price").value = product.wholesalePrice || "";
   document.getElementById("edit-wholesale-min").value = product.wholesaleMin || "";
+
+  // Load existing image
+  currentProductImage = product.image || null;
+  updateImagePreview(currentProductImage);
 
   togglePricingFields(product.category);
   document.getElementById("edit-product-modal").classList.add("active");
@@ -2373,6 +2479,7 @@ async function saveProduct() {
       product.costPrice = costPrice;
       product.wholesalePrice = wholesalePrice;
       product.wholesaleMin = wholesaleMin;
+      product.image = currentProductImage; // Save image
       if (category === "Feed") {
         product.pricePerKg = parseFloat(document.getElementById("edit-price-per-kg").value) || 0;
         product.pricePerSack = parseFloat(document.getElementById("edit-price-per-sack").value) || 0;
@@ -2396,14 +2503,16 @@ async function saveProduct() {
     showToast("Product updated");
   } else {
     // Add new
+    const newId = state.products.length > 0 ? Math.max(...state.products.map(p => p.id)) + 1 : 1;
     const newProduct = {
-      id: Math.max(...state.products.map(p => p.id)) + 1,
+      id: newId,
       name: name,
       brand: brand,
       category: category,
       costPrice: costPrice,
       wholesalePrice: wholesalePrice,
-      wholesaleMin: wholesaleMin
+      wholesaleMin: wholesaleMin,
+      image: currentProductImage // Save image
     };
 
     if (category === "Feed") {
