@@ -293,21 +293,21 @@
           <div class="card card-success">
             <div class="card-icon">SALES</div>
             <div class="card-content">
-              <h3>P<span id="total-sales-today">15,800</span></h3>
+              <h3>P<span id="total-sales-today">0</span></h3>
               <p>Today's Sales</p>
             </div>
           </div>
           <div class="card card-info">
             <div class="card-icon">ITEMS</div>
             <div class="card-content">
-              <h3 id="total-products">62</h3>
+              <h3 id="total-products">0</h3>
               <p>Total Products</p>
             </div>
           </div>
           <div class="card card-warning">
             <div class="card-icon">ALERT</div>
             <div class="card-content">
-              <h3 id="low-stock-items">4</h3>
+              <h3 id="low-stock-items">0</h3>
               <p>Low Stock Items</p>
             </div>
           </div>
@@ -369,29 +369,10 @@
         <div class="recent-activity">
           <h2>Recent Sales</h2>
           <div class="activity-list">
-            <div class="activity-item">
-              <span class="activity-icon">RCPT</span>
-              <div class="activity-details">
-                <strong>Sale #1024</strong>
-                <p>B-Meg Broiler Starter (3 Sacks) - P3,750</p>
-              </div>
-              <span class="activity-time">2 mins ago</span>
-            </div>
-            <div class="activity-item">
-              <span class="activity-icon">RCPT</span>
-              <div class="activity-details">
-                <strong>Sale #1023</strong>
-                <p>Vetracin Gold Injectable (5 pcs) - P925</p>
-              </div>
-              <span class="activity-time">15 mins ago</span>
-            </div>
-            <div class="activity-item">
-              <span class="activity-icon">RCPT</span>
-              <div class="activity-details">
-                <strong>Sale #1022</strong>
-                <p>Vitarich Hog Grower (2 kg) - P110</p>
-              </div>
-              <span class="activity-time">32 mins ago</span>
+            <!-- Populated by JavaScript -->
+            <div class="no-activity">
+              <p>No recent sales</p>
+              <small>Sales will appear here after checkout</small>
             </div>
           </div>
         </div>
@@ -630,45 +611,11 @@
             </div>
             <div class="ava-card-body">
               <div class="forecast-main" id="sales-forecast-value">
-                <span class="forecast-amount">₱98,500</span>
-                <span class="forecast-trend positive">+10.4% expected</span>
+                <span class="forecast-amount">₱0</span>
+                <span class="forecast-trend neutral">No data yet</span>
               </div>
               <div class="forecast-breakdown" id="sales-forecast-breakdown">
-                <div class="forecast-day">
-                  <span class="day">Mon</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 75%;"></div></div>
-                  <span class="amount">₱14,200</span>
-                </div>
-                <div class="forecast-day">
-                  <span class="day">Tue</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 80%;"></div></div>
-                  <span class="amount">₱15,100</span>
-                </div>
-                <div class="forecast-day">
-                  <span class="day">Wed</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 65%;"></div></div>
-                  <span class="amount">₱12,300</span>
-                </div>
-                <div class="forecast-day">
-                  <span class="day">Thu</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 85%;"></div></div>
-                  <span class="amount">₱16,200</span>
-                </div>
-                <div class="forecast-day">
-                  <span class="day">Fri</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 90%;"></div></div>
-                  <span class="amount">₱17,000</span>
-                </div>
-                <div class="forecast-day">
-                  <span class="day">Sat</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 70%;"></div></div>
-                  <span class="amount">₱13,200</span>
-                </div>
-                <div class="forecast-day">
-                  <span class="day">Sun</span>
-                  <div class="forecast-bar"><div class="forecast-fill" style="width: 55%;"></div></div>
-                  <span class="amount">₱10,500</span>
-                </div>
+                <!-- Populated by JavaScript based on real transaction data -->
               </div>
             </div>
           </div>

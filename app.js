@@ -5,65 +5,14 @@
    ============================================ */
 
 // ============================================
-// Static Data (Hardcoded)
+// App Configuration
 // ============================================
 
 const APP_DATA = {
   storeName: "FlyHighManarang",
-  totalSalesToday: 18500,
-  totalProducts: 33,
-  lowStockItems: 8,
   currency: "PHP",
   currencySymbol: "₱"
 };
-
-// Monthly Sales Demo Data by Year
-const MONTHLY_SALES_DATA = {
-  2024: {
-    1: { amount: 385420, change: 8.2 },
-    2: { amount: 342150, change: -11.2 },
-    3: { amount: 398750, change: 16.5 },
-    4: { amount: 412380, change: 3.4 },
-    5: { amount: 445920, change: 8.1 },
-    6: { amount: 428650, change: -3.9 },
-    7: { amount: 467800, change: 9.1 },
-    8: { amount: 489250, change: 4.6 },
-    9: { amount: 456780, change: -6.6 },
-    10: { amount: 478920, change: 4.8 },
-    11: { amount: 427880, change: -10.7 },
-    12: { amount: 458250, change: 7.1 }
-  },
-  2025: {
-    1: { amount: 472580, change: 3.1 },
-    2: { amount: 438920, change: -7.1 },
-    3: { amount: 495380, change: 12.9 },
-    4: { amount: 512450, change: 3.4 },
-    5: { amount: 548920, change: 7.1 },
-    6: { amount: 523680, change: -4.6 },
-    7: { amount: 567200, change: 8.3 },
-    8: { amount: 592850, change: 4.5 },
-    9: { amount: 558420, change: -5.8 },
-    10: { amount: 589650, change: 5.6 },
-    11: { amount: 542380, change: -8.0 },
-    12: { amount: 578920, change: 6.7 }
-  }
-};
-
-// Yearly Sales Demo Data
-const YEARLY_SALES_DATA = {
-  2023: { amount: 4142580, change: 0 },
-  2024: { amount: 4892150, change: 18.1 },
-  2025: { amount: 5921350, change: 21.0 }
-};
-
-// All-Time Sales
-const ALLTIME_SALES = {
-  total: 14956080,
-  transactions: 10284,
-  since: 2021
-};
-
-
 
 
 const FEED_UNITS = [
@@ -75,12 +24,6 @@ const FEED_UNITS = [
   { value: "custom", label: "Custom KG", multiplier: "custom" }
 ];
 
-const REPORTS = {
-  dailySales: 18500,
-  weeklySales: 112000,
-  monthlySales: 425000,
-  bestSeller: "Broiler Starter Crumble"
-};
 
 
 // ============================================
@@ -548,65 +491,150 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+// ============================================
+// Dashboard Data Functions (Real Data from Transactions)
+// ============================================
+
+// Get sales data from real transactions
+function getSalesDataFromTransactions() {
+  const transactions = state.transactions;
+  const now = new Date();
+  const today = now.toDateString();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  // Calculate today's sales
+  const todaySales = transactions
+    .filter(t => new Date(t.date).toDateString() === today)
+    .reduce((sum, t) => sum + t.total, 0);
+
+  // Group transactions by year and month
+  const monthlyData = {};
+  const yearlyData = {};
+  let allTimeTotal = 0;
+  let oldestYear = currentYear;
+
+  transactions.forEach(t => {
+    const date = new Date(t.date);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    // Track oldest year
+    if (year < oldestYear) oldestYear = year;
+
+    // Monthly aggregation
+    if (!monthlyData[year]) monthlyData[year] = {};
+    if (!monthlyData[year][month]) monthlyData[year][month] = 0;
+    monthlyData[year][month] += t.total;
+
+    // Yearly aggregation
+    if (!yearlyData[year]) yearlyData[year] = 0;
+    yearlyData[year] += t.total;
+
+    // All-time total
+    allTimeTotal += t.total;
+  });
+
+  return {
+    todaySales,
+    monthlyData,
+    yearlyData,
+    allTimeTotal,
+    totalTransactions: transactions.length,
+    oldestYear: transactions.length > 0 ? oldestYear : currentYear
+  };
+}
+
 // Initialize Sales Overview on page load
 function initSalesOverview() {
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const currentMonth = new Date().getMonth() + 1;
 
-  // Populate month selector dynamically
+  // Populate month selector from real data
   populateMonthSelector(currentYear, currentMonth);
 
-  // Update yearly sales display
-  updateYearlySales(currentYear);
-
-  // Update all-time sales display
-  updateAllTimeSales();
-
-  // Set initial monthly sales display
+  // Update all displays
   updateMonthlySales();
+  updateYearlySales(currentYear);
+  updateAllTimeSales();
+  updateDashboardCards();
+  renderRecentSales();
 }
 
-// Populate month selector with current year's months
+// Populate month selector from real transaction data
 function populateMonthSelector(currentYear, currentMonth) {
   const selector = document.getElementById("month-selector");
   if (!selector) return;
 
   selector.innerHTML = "";
 
-  // Get available years from data
-  const availableYears = Object.keys(MONTHLY_SALES_DATA).map(Number).sort((a, b) => b - a);
+  const salesData = getSalesDataFromTransactions();
+  const monthlyData = salesData.monthlyData;
 
-  // Add months for each year (most recent first)
+  // If no data, just show current month
+  if (Object.keys(monthlyData).length === 0) {
+    const option = document.createElement("option");
+    option.value = `${currentYear}-${currentMonth}`;
+    option.textContent = `${MONTH_NAMES[currentMonth - 1]} ${currentYear}`;
+    selector.appendChild(option);
+    return;
+  }
+
+  // Get available years sorted descending
+  const availableYears = Object.keys(monthlyData).map(Number).sort((a, b) => b - a);
+
   availableYears.forEach(year => {
-    const yearData = MONTHLY_SALES_DATA[year];
-    const maxMonth = (year === currentYear) ? currentMonth : 12;
+    const yearData = monthlyData[year];
+    const months = Object.keys(yearData).map(Number).sort((a, b) => b - a);
 
-    for (let month = maxMonth; month >= 1; month--) {
-      if (yearData[month]) {
-        const option = document.createElement("option");
-        option.value = `${year}-${month}`;
-        option.textContent = `${MONTH_NAMES[month - 1]} ${year}`;
-        selector.appendChild(option);
-      }
-    }
+    months.forEach(month => {
+      const option = document.createElement("option");
+      option.value = `${year}-${month}`;
+      option.textContent = `${MONTH_NAMES[month - 1]} ${year}`;
+      selector.appendChild(option);
+    });
   });
 }
 
 // Update Monthly Sales display based on selected month
 function updateMonthlySales() {
   const selector = document.getElementById("month-selector");
-  if (!selector || !selector.value) return;
+  const amountEl = document.getElementById("monthly-sales-amount");
+  const comparisonEl = document.querySelector(".monthly-sales .sales-comparison");
+
+  if (!selector || !amountEl) return;
+
+  const salesData = getSalesDataFromTransactions();
+  const monthlyData = salesData.monthlyData;
+
+  if (!selector.value) {
+    amountEl.textContent = "0";
+    if (comparisonEl) comparisonEl.innerHTML = `<span class="neutral">-</span> vs last month`;
+    return;
+  }
 
   const [year, month] = selector.value.split("-").map(Number);
-  const yearData = MONTHLY_SALES_DATA[year];
-  const data = yearData ? yearData[month] : null;
+  const currentAmount = monthlyData[year]?.[month] || 0;
 
-  if (data) {
-    document.getElementById("monthly-sales-amount").textContent = formatNumber(data.amount);
+  // Calculate previous month for comparison
+  let prevMonth = month - 1;
+  let prevYear = year;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear = year - 1;
+  }
+  const prevAmount = monthlyData[prevYear]?.[prevMonth] || 0;
 
-    const comparisonEl = document.querySelector(".monthly-sales .sales-comparison");
-    const isPositive = data.change >= 0;
-    comparisonEl.innerHTML = `<span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${data.change}%</span> vs last month`;
+  amountEl.textContent = formatNumber(currentAmount);
+
+  if (comparisonEl) {
+    if (prevAmount > 0) {
+      const change = ((currentAmount - prevAmount) / prevAmount * 100).toFixed(1);
+      const isPositive = change >= 0;
+      comparisonEl.innerHTML = `<span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${change}%</span> vs last month`;
+    } else {
+      comparisonEl.innerHTML = `<span class="neutral">-</span> vs last month`;
+    }
   }
 }
 
@@ -618,16 +646,22 @@ function updateYearlySales(currentYear) {
 
   if (!yearLabel || !yearlyAmount) return;
 
-  const yearData = YEARLY_SALES_DATA[currentYear];
-  const prevYearData = YEARLY_SALES_DATA[currentYear - 1];
+  const salesData = getSalesDataFromTransactions();
+  const yearlyData = salesData.yearlyData;
 
-  if (yearData) {
-    yearLabel.textContent = currentYear;
-    yearlyAmount.textContent = formatNumber(yearData.amount);
+  const currentYearTotal = yearlyData[currentYear] || 0;
+  const prevYearTotal = yearlyData[currentYear - 1] || 0;
 
-    if (yearlyComparison && prevYearData) {
-      const isPositive = yearData.change >= 0;
-      yearlyComparison.innerHTML = `<span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${yearData.change}%</span> vs ${currentYear - 1}`;
+  yearLabel.textContent = currentYear;
+  yearlyAmount.textContent = formatNumber(currentYearTotal);
+
+  if (yearlyComparison) {
+    if (prevYearTotal > 0) {
+      const change = ((currentYearTotal - prevYearTotal) / prevYearTotal * 100).toFixed(1);
+      const isPositive = change >= 0;
+      yearlyComparison.innerHTML = `<span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${change}%</span> vs ${currentYear - 1}`;
+    } else {
+      yearlyComparison.innerHTML = `<span class="neutral">-</span> vs last year`;
     }
   }
 }
@@ -638,17 +672,99 @@ function updateAllTimeSales() {
   const alltimeInfo = document.querySelector(".alltime-sales .sales-info");
   const sinceLabel = document.querySelector(".alltime-sales .year-label");
 
+  const salesData = getSalesDataFromTransactions();
+
   if (alltimeAmount) {
-    alltimeAmount.textContent = formatNumber(ALLTIME_SALES.total);
+    alltimeAmount.textContent = formatNumber(salesData.allTimeTotal);
   }
 
   if (alltimeInfo) {
-    alltimeInfo.textContent = `Total Transactions: ${formatNumber(ALLTIME_SALES.transactions)}`;
+    alltimeInfo.textContent = `Total Transactions: ${formatNumber(salesData.totalTransactions)}`;
   }
 
   if (sinceLabel) {
-    sinceLabel.textContent = `Since ${ALLTIME_SALES.since}`;
+    sinceLabel.textContent = salesData.totalTransactions > 0 ? `Since ${salesData.oldestYear}` : "No sales yet";
   }
+}
+
+// Update Dashboard summary cards
+function updateDashboardCards() {
+  const salesData = getSalesDataFromTransactions();
+
+  // Today's sales
+  const todaySalesEl = document.getElementById("total-sales-today");
+  if (todaySalesEl) {
+    todaySalesEl.textContent = formatNumber(salesData.todaySales);
+  }
+
+  // Total products
+  const totalProductsEl = document.getElementById("total-products");
+  if (totalProductsEl) {
+    totalProductsEl.textContent = state.products.length;
+  }
+
+  // Low stock items
+  const lowStockEl = document.getElementById("low-stock-items");
+  if (lowStockEl) {
+    const lowStockCount = state.inventory.filter(i => i.lowStock).length;
+    lowStockEl.textContent = lowStockCount;
+  }
+}
+
+// Render Recent Sales on Dashboard
+function renderRecentSales() {
+  const container = document.querySelector(".recent-activity .activity-list");
+  if (!container) return;
+
+  // Get 5 most recent transactions
+  const recentTransactions = [...state.transactions]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  if (recentTransactions.length === 0) {
+    container.innerHTML = `
+      <div class="no-activity">
+        <p>No recent sales</p>
+        <small>Sales will appear here after checkout</small>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = recentTransactions.map(txn => {
+    const firstItem = txn.items[0];
+    const itemSummary = txn.items.length > 1
+      ? `${firstItem.name} +${txn.items.length - 1} more`
+      : `${firstItem.name} (${firstItem.quantity} ${firstItem.unit})`;
+    const timeAgo = getTimeAgo(new Date(txn.date));
+    const saleNumber = txn.id.split('-').pop();
+
+    return `
+      <div class="activity-item" onclick="viewTransactionDetails('${txn.id}')">
+        <span class="activity-icon">RCPT</span>
+        <div class="activity-details">
+          <strong>Sale #${saleNumber}</strong>
+          <p>${itemSummary} - ₱${formatNumber(txn.total)}</p>
+        </div>
+        <span class="activity-time">${timeAgo}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+// Helper: Get time ago string
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays === 1) return "Yesterday";
+  return `${diffDays} days ago`;
 }
 
 // ============================================
@@ -2374,12 +2490,82 @@ function formatNumber(num) {
 // ============================================
 
 function renderAvaAI() {
+  renderSalesForecast();
   renderStockAlerts();
   renderReorderSuggestions();
   renderProfitInsights();
   renderAvaRecommendations();
   renderCannibalization();
   renderTrendingProducts();
+}
+
+// Render Sales Forecast based on real transaction data
+function renderSalesForecast() {
+  const forecastValue = document.getElementById("sales-forecast-value");
+  const forecastBreakdown = document.getElementById("sales-forecast-breakdown");
+  if (!forecastValue || !forecastBreakdown) return;
+
+  // Calculate average daily sales from past transactions
+  const transactions = state.transactions;
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  // Group sales by day of week
+  const salesByDay = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+
+  transactions.forEach(t => {
+    const day = new Date(t.date).getDay();
+    salesByDay[day].push(t.total);
+  });
+
+  // Calculate average for each day
+  const avgByDay = {};
+  let totalWeekForecast = 0;
+  let maxDaySales = 0;
+
+  for (let i = 0; i < 7; i++) {
+    const daySales = salesByDay[i];
+    const avg = daySales.length > 0
+      ? Math.round(daySales.reduce((a, b) => a + b, 0) / daySales.length)
+      : 0;
+    avgByDay[i] = avg;
+    totalWeekForecast += avg;
+    if (avg > maxDaySales) maxDaySales = avg;
+  }
+
+  // Calculate trend (compare this week projection vs last week actual)
+  const lastWeekTotal = transactions
+    .filter(t => {
+      const txnDate = new Date(t.date);
+      const now = new Date();
+      const daysAgo = (now - txnDate) / 86400000;
+      return daysAgo >= 7 && daysAgo < 14;
+    })
+    .reduce((sum, t) => sum + t.total, 0);
+
+  const trendPercent = lastWeekTotal > 0
+    ? ((totalWeekForecast - lastWeekTotal) / lastWeekTotal * 100).toFixed(1)
+    : 0;
+  const isPositive = trendPercent >= 0;
+
+  // Update forecast header
+  forecastValue.innerHTML = `
+    <span class="forecast-amount">₱${formatNumber(totalWeekForecast)}</span>
+    <span class="forecast-trend ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${trendPercent}% expected</span>
+  `;
+
+  // Build day breakdown (Mon-Sun order)
+  const orderedDays = [1, 2, 3, 4, 5, 6, 0]; // Mon to Sun
+  forecastBreakdown.innerHTML = orderedDays.map(dayIndex => {
+    const avg = avgByDay[dayIndex];
+    const barWidth = maxDaySales > 0 ? Math.round((avg / maxDaySales) * 100) : 0;
+    return `
+      <div class="forecast-day">
+        <span class="day">${dayNames[dayIndex]}</span>
+        <div class="forecast-bar"><div class="forecast-fill" style="width: ${barWidth}%;"></div></div>
+        <span class="amount">₱${formatNumber(avg)}</span>
+      </div>
+    `;
+  }).join("");
 }
 
 function refreshAvaAI() {
@@ -2653,16 +2839,66 @@ function renderTrendingProducts() {
   const container = document.getElementById("trending-products");
   if (!container) return;
 
-  // Simulate trending products with random sales data
-  const trendingProducts = state.products
-    .slice(0, 8)
-    .map(product => ({
-      ...product,
-      weekSales: Math.floor(Math.random() * 200 + 50),
-      trend: Math.random() > 0.3 ? 'up' : 'down',
-      trendPercent: Math.floor(Math.random() * 30 + 5)
-    }))
-    .sort((a, b) => b.weekSales - a.weekSales);
+  // Calculate trending products from real transaction data
+  const now = new Date();
+  const oneWeekAgo = new Date(now - 7 * 86400000);
+  const twoWeeksAgo = new Date(now - 14 * 86400000);
+
+  // Get this week's transactions
+  const thisWeekTxns = state.transactions.filter(t => new Date(t.date) >= oneWeekAgo);
+  // Get last week's transactions
+  const lastWeekTxns = state.transactions.filter(t => {
+    const txnDate = new Date(t.date);
+    return txnDate >= twoWeeksAgo && txnDate < oneWeekAgo;
+  });
+
+  // Aggregate sales by product for this week
+  const thisWeekSales = {};
+  thisWeekTxns.forEach(t => {
+    t.items.forEach(item => {
+      if (!thisWeekSales[item.productId]) {
+        thisWeekSales[item.productId] = { name: item.name, quantity: 0, revenue: 0 };
+      }
+      thisWeekSales[item.productId].quantity += item.quantity;
+      thisWeekSales[item.productId].revenue += item.price;
+    });
+  });
+
+  // Aggregate sales by product for last week
+  const lastWeekSales = {};
+  lastWeekTxns.forEach(t => {
+    t.items.forEach(item => {
+      if (!lastWeekSales[item.productId]) {
+        lastWeekSales[item.productId] = { quantity: 0 };
+      }
+      lastWeekSales[item.productId].quantity += item.quantity;
+    });
+  });
+
+  // Build trending array
+  const trendingProducts = Object.entries(thisWeekSales)
+    .map(([productId, data]) => {
+      const lastWeek = lastWeekSales[productId]?.quantity || 0;
+      const thisWeek = data.quantity;
+      const trendPercent = lastWeek > 0
+        ? Math.round((thisWeek - lastWeek) / lastWeek * 100)
+        : (thisWeek > 0 ? 100 : 0);
+
+      return {
+        productId,
+        name: data.name,
+        weekSales: thisWeek,
+        trend: trendPercent >= 0 ? 'up' : 'down',
+        trendPercent: Math.abs(trendPercent)
+      };
+    })
+    .sort((a, b) => b.weekSales - a.weekSales)
+    .slice(0, 8);
+
+  if (trendingProducts.length === 0) {
+    container.innerHTML = '<p class="no-trending">No sales data yet. Start selling to see trending products!</p>';
+    return;
+  }
 
   container.innerHTML = trendingProducts.map((product, index) => `
     <div class="trending-item">
@@ -2682,6 +2918,35 @@ function renderCannibalization() {
   const container = document.getElementById("cannibalization-analysis");
   if (!container) return;
 
+  // Use real transaction data to analyze cannibalization
+  const now = new Date();
+  const oneWeekAgo = new Date(now - 7 * 86400000);
+  const twoWeeksAgo = new Date(now - 14 * 86400000);
+
+  // Get sales data for this week and last week
+  const thisWeekTxns = state.transactions.filter(t => new Date(t.date) >= oneWeekAgo);
+  const lastWeekTxns = state.transactions.filter(t => {
+    const txnDate = new Date(t.date);
+    return txnDate >= twoWeeksAgo && txnDate < oneWeekAgo;
+  });
+
+  // Aggregate sales by product
+  const getSalesByProduct = (txns) => {
+    const sales = {};
+    txns.forEach(t => {
+      t.items.forEach(item => {
+        if (!sales[item.productId]) {
+          sales[item.productId] = { productId: item.productId, name: item.name, quantity: 0 };
+        }
+        sales[item.productId].quantity += item.quantity;
+      });
+    });
+    return sales;
+  };
+
+  const thisWeekSales = getSalesByProduct(thisWeekTxns);
+  const lastWeekSales = getSalesByProduct(lastWeekTxns);
+
   // Group products by category and analyze cannibalization
   const categories = [...new Set(state.products.map(p => p.category))];
   const cannibalizationData = [];
@@ -2692,12 +2957,18 @@ function renderCannibalization() {
     // Only analyze categories with more than 1 product
     if (categoryProducts.length < 2) return;
 
-    // Simulate sales data for each product
-    const productsWithSales = categoryProducts.map(product => ({
-      ...product,
-      simulatedSales: Math.floor(Math.random() * 150 + 30),
-      prevWeekSales: Math.floor(Math.random() * 150 + 30)
-    }));
+    // Get sales data for each product in category
+    const productsWithSales = categoryProducts.map(product => {
+      const thisWeek = thisWeekSales[product.id]?.quantity || 0;
+      const lastWeek = lastWeekSales[product.id]?.quantity || 0;
+      return {
+        ...product,
+        simulatedSales: thisWeek,
+        prevWeekSales: lastWeek
+      };
+    }).filter(p => p.simulatedSales > 0 || p.prevWeekSales > 0);
+
+    if (productsWithSales.length < 2) return;
 
     // Sort by sales to find dominant product
     productsWithSales.sort((a, b) => b.simulatedSales - a.simulatedSales);
@@ -2707,23 +2978,23 @@ function renderCannibalization() {
       const dominant = productsWithSales[i];
       const affected = productsWithSales[i + 1];
 
-      // Calculate cannibalization score (simulated inverse correlation)
+      if (dominant.prevWeekSales === 0 || affected.prevWeekSales === 0) continue;
+
+      // Calculate cannibalization score based on real growth
       const dominantGrowth = ((dominant.simulatedSales - dominant.prevWeekSales) / dominant.prevWeekSales) * 100;
       const affectedGrowth = ((affected.simulatedSales - affected.prevWeekSales) / affected.prevWeekSales) * 100;
 
       // If dominant grew while affected declined, there's potential cannibalization
-      const cannibalizationScore = dominantGrowth > 0 && affectedGrowth < 0
-        ? Math.abs(affectedGrowth)
-        : Math.random() * 25;
+      if (dominantGrowth > 0 && affectedGrowth < 0) {
+        const cannibalizationScore = Math.min(Math.abs(affectedGrowth), 45);
 
-      if (cannibalizationScore > 5) {
         cannibalizationData.push({
           category,
           dominant,
           affected,
           dominantSales: dominant.simulatedSales,
           affectedSales: affected.simulatedSales,
-          cannibalizationScore: Math.min(cannibalizationScore, 45),
+          cannibalizationScore,
           recommendation: getCannibalizationRecommendation(dominant, affected, cannibalizationScore)
         });
       }
