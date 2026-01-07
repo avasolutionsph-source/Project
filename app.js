@@ -27,8 +27,21 @@ const FEED_UNITS = [
 
 
 // ============================================
+// Security Helpers
+// ============================================
+
+// Escape HTML to prevent XSS attacks
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+// ============================================
 // State Management
 // ============================================
+
+let currentProductImage = null;
 
 let state = {
   currentScreen: "dashboard",
@@ -78,19 +91,28 @@ async function initApp() {
 
 // Check if user is logged in or needs to set up account
 async function checkAuthStatus() {
-  const hasUsers = await hasAnyUsers();
-  const savedUser = localStorage.getItem('flyhigh_current_user');
+  // Initialize Supabase
+  initSupabase();
 
-  if (!hasUsers) {
-    // First time - show setup form
-    showSetupForm();
-  } else if (savedUser) {
-    // User was previously logged in
-    const user = JSON.parse(savedUser);
-    state.currentUser = user;
-    await initializeMainApp();
-  } else {
-    // Show login form
+  try {
+    // Check for existing Supabase session
+    const session = await supabaseGetSession();
+
+    if (session && session.user) {
+      // User is logged in via Supabase
+      state.currentUser = {
+        id: session.user.id,
+        email: session.user.email,
+        role: 'admin'
+      };
+      await initializeMainApp();
+    } else {
+      // No session - show login form
+      showLoginForm();
+    }
+  } catch (error) {
+    console.error('Auth check error:', error);
+    // Fallback to login form
     showLoginForm();
   }
 }
@@ -102,77 +124,81 @@ function showLoginForm() {
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('setup-form').style.display = 'none';
   document.getElementById('login-error').classList.remove('show');
+  document.getElementById('auth-switch-link').style.display = 'block';
 }
 
-// Show setup form (first time)
+// Show setup form (create account)
 function showSetupForm() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-form').style.display = 'none';
   document.getElementById('setup-form').style.display = 'block';
   document.getElementById('setup-error').classList.remove('show');
+  document.getElementById('auth-switch-link').style.display = 'none';
 }
 
 // Handle login form submission
 async function handleLogin(event) {
   event.preventDefault();
 
-  const username = document.getElementById('login-username').value.trim();
+  const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   const errorEl = document.getElementById('login-error');
+  const submitBtn = event.target.querySelector('button[type="submit"]');
 
-  if (!username || !password) {
-    errorEl.textContent = 'Please enter username and password';
+  if (!email || !password) {
+    errorEl.textContent = 'Please enter email and password';
     errorEl.classList.add('show');
     return;
   }
 
-  const user = await getUserByUsername(username);
+  // Disable button during login
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Logging in...';
 
-  if (!user) {
-    errorEl.textContent = 'Invalid username or password';
+  try {
+    const data = await supabaseSignIn(email, password);
+
+    if (data && data.user) {
+      // Login successful
+      state.currentUser = {
+        id: data.user.id,
+        email: data.user.email,
+        role: 'admin'
+      };
+
+      errorEl.classList.remove('show');
+      showToast('Welcome back!');
+      await initializeMainApp();
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    errorEl.textContent = error.message || 'Invalid email or password';
     errorEl.classList.add('show');
-    return;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Login';
   }
-
-  // Simple password check (in a real app, use proper hashing)
-  if (user.password !== password) {
-    errorEl.textContent = 'Invalid username or password';
-    errorEl.classList.add('show');
-    return;
-  }
-
-  // Login successful
-  state.currentUser = { id: user.id, username: user.username, role: user.role };
-  localStorage.setItem('flyhigh_current_user', JSON.stringify(state.currentUser));
-
-  errorEl.classList.remove('show');
-  await initializeMainApp();
 }
 
-// Handle first-time setup
+// Handle signup/create account
 async function handleSetup(event) {
   event.preventDefault();
 
-  const username = document.getElementById('setup-username').value.trim();
+  const email = document.getElementById('setup-email').value.trim();
   const password = document.getElementById('setup-password').value;
   const confirm = document.getElementById('setup-confirm').value;
   const errorEl = document.getElementById('setup-error');
+  const submitBtn = event.target.querySelector('button[type="submit"]');
 
-  if (!username || !password || !confirm) {
+  if (!email || !password || !confirm) {
     errorEl.textContent = 'Please fill in all fields';
     errorEl.classList.add('show');
     return;
   }
 
-  if (username.length < 3) {
-    errorEl.textContent = 'Username must be at least 3 characters';
-    errorEl.classList.add('show');
-    return;
-  }
-
-  if (password.length < 4) {
-    errorEl.textContent = 'Password must be at least 4 characters';
+  if (password.length < 6) {
+    errorEl.textContent = 'Password must be at least 6 characters';
     errorEl.classList.add('show');
     return;
   }
@@ -183,34 +209,62 @@ async function handleSetup(event) {
     return;
   }
 
+  // Disable button during signup
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating account...';
+
   try {
-    // Create admin user
-    await addUser({
-      username: username,
-      password: password,
-      role: 'admin',
-      createdAt: new Date().toISOString()
-    });
+    const data = await supabaseSignUp(email, password);
 
-    // Auto-login after setup
-    const newUser = await getUserByUsername(username);
-    state.currentUser = { id: newUser.id, username: newUser.username, role: newUser.role };
-    localStorage.setItem('flyhigh_current_user', JSON.stringify(state.currentUser));
+    if (data && data.user) {
+      // Check if email confirmation is required
+      if (data.user.identities && data.user.identities.length === 0) {
+        errorEl.textContent = 'This email is already registered. Please login instead.';
+        errorEl.classList.add('show');
+        return;
+      }
 
-    errorEl.classList.remove('show');
-    showToast('Account created! Welcome to FlyHighManarang');
-    await initializeMainApp();
+      // Signup successful - auto login
+      state.currentUser = {
+        id: data.user.id,
+        email: data.user.email,
+        role: 'admin'
+      };
+
+      errorEl.classList.remove('show');
+      showToast('Account created! Welcome to FlyHighManarang');
+
+      // Check for existing local data to migrate
+      const localProducts = await db.products.count();
+      if (localProducts > 0) {
+        showToast('Migrating existing data to cloud...');
+        try {
+          await migrateLocalDataToSupabase();
+          showToast('Data migrated successfully!');
+        } catch (migError) {
+          console.error('Migration error:', migError);
+          showToast('Data will sync when connection is stable');
+        }
+      }
+
+      await initializeMainApp();
+    }
   } catch (error) {
-    console.error('Error creating user:', error);
-    errorEl.textContent = 'Error creating account. Please try again.';
+    console.error('Signup error:', error);
+    errorEl.textContent = error.message || 'Error creating account. Please try again.';
     errorEl.classList.add('show');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Account';
   }
 }
 
 // Toggle password visibility
 function togglePasswordVisibility(inputId) {
   const input = document.getElementById(inputId);
+  if (!input || !input.parentElement) return;
   const btn = input.parentElement.querySelector('.toggle-password');
+  if (!btn) return;
 
   if (input.type === 'password') {
     input.type = 'text';
@@ -228,8 +282,14 @@ function togglePasswordVisibility(inputId) {
 }
 
 // Logout
-function logout() {
+async function logout() {
   if (!confirm('Are you sure you want to logout?')) return;
+
+  try {
+    await supabaseSignOut();
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
 
   state.currentUser = null;
   localStorage.removeItem('flyhigh_current_user');
@@ -239,50 +299,133 @@ function logout() {
 
 // Initialize main app after successful login
 async function initializeMainApp() {
-  // Hide login, show app
+  // Hide login, show loading screen
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app-loading').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
 
-  // Load data from IndexedDB
-  await loadDataFromDB();
+  const statusEl = document.getElementById('loading-status');
+  const progressBar = document.getElementById('loading-progress-bar');
 
-  // Load saved preferences
-  await loadPreferences();
+  try {
+    // Update loading status helper
+    const updateLoadingStatus = (message, progress) => {
+      if (statusEl) statusEl.textContent = message;
+      if (progressBar) progressBar.style.width = `${progress}%`;
+    };
 
-  // Set up navigation
-  setupNavigation();
+    updateLoadingStatus('Loading database...', 10);
+    await loadDataFromDB();
 
-  // Render initial content
-  renderProducts();
-  renderInventory();
-  renderProductsTable();
-  renderDisplay();
+    updateLoadingStatus('Loading preferences...', 25);
+    await loadPreferences();
 
-  // Update user menu
-  renderUserMenu();
+    updateLoadingStatus('Connecting to cloud...', 40);
+    await initializeSyncManager();
 
-  // Initialize Sales Overview (dynamic year/month)
-  initSalesOverview();
+    updateLoadingStatus('Setting up navigation...', 55);
+    setupNavigation();
 
-  // Initialize Notifications
-  generateNotifications();
+    updateLoadingStatus('Rendering products...', 70);
+    renderProducts();
+    renderInventory();
+    renderProductsTable();
+    renderDisplay();
 
-  // Update time
-  updateTime();
-  setInterval(updateTime, 1000);
+    updateLoadingStatus('Preparing dashboard...', 85);
+    renderUserMenu();
+    initSalesOverview();
+    generateNotifications();
 
-  // Register service worker
-  registerServiceWorker();
+    updateLoadingStatus('Finalizing...', 95);
+    updateTime();
+    setInterval(updateTime, 1000);
+    registerServiceWorker();
+    setupInstallPrompt();
+    setupSyncStatusListener();
 
-  // Check for install prompt
-  setupInstallPrompt();
+    updateLoadingStatus('Ready!', 100);
 
-  console.log("FlyHighManarang PWA initialized with Dexie!");
+    // Brief delay to show 100% completion
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Hide loading, show app
+    document.getElementById('app-loading').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+
+    console.log("FlyHighManarang PWA initialized with Supabase sync!");
+  } catch (error) {
+    console.error('App initialization error:', error);
+    if (statusEl) statusEl.textContent = 'Error loading app. Please refresh.';
+    if (progressBar) progressBar.style.background = 'var(--danger)';
+  }
+}
+
+// Initialize sync manager and perform initial sync
+async function initializeSyncManager() {
+  try {
+    await syncManager.initialize();
+    updateSyncStatusUI(syncManager.getSyncStatus());
+  } catch (error) {
+    console.error('Sync manager init error:', error);
+    updateSyncStatusUI('offline');
+  }
+}
+
+// Listen for sync status changes
+function setupSyncStatusListener() {
+  document.addEventListener('sync-status-change', (event) => {
+    const { status, message } = event.detail;
+    updateSyncStatusUI(status, message);
+  });
+
+  // Also listen for network changes
+  document.addEventListener('network-status-change', (event) => {
+    updateSyncStatusUI(event.detail === 'online' ? 'synced' : 'offline');
+  });
+}
+
+// Update sync status UI
+function updateSyncStatusUI(status, message = '') {
+  const syncIcon = document.getElementById('sync-icon');
+  const syncText = document.getElementById('sync-text');
+
+  if (!syncIcon || !syncText) return;
+
+  // Remove all status classes
+  syncIcon.className = 'sync-icon';
+
+  switch (status) {
+    case 'synced':
+      syncIcon.classList.add('synced');
+      syncText.textContent = 'Synced';
+      break;
+    case 'syncing':
+      syncIcon.classList.add('syncing');
+      syncText.textContent = 'Syncing...';
+      break;
+    case 'offline':
+      syncIcon.classList.add('offline');
+      syncText.textContent = 'Offline';
+      break;
+    case 'error':
+      syncIcon.classList.add('error');
+      syncText.textContent = message || 'Sync Error';
+      break;
+    case 'online':
+      syncIcon.classList.add('synced');
+      syncText.textContent = 'Online';
+      break;
+    default:
+      syncIcon.classList.add('offline');
+      syncText.textContent = status;
+  }
 }
 
 // Render user menu in sidebar
 function renderUserMenu() {
   const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
   const existingMenu = sidebar.querySelector('.user-menu');
 
   if (existingMenu) {
@@ -291,15 +434,19 @@ function renderUserMenu() {
 
   if (!state.currentUser) return;
 
-  const userInitial = state.currentUser.username.charAt(0).toUpperCase();
+  // Get display name - use email or username
+  const displayName = state.currentUser.email || state.currentUser.username || 'User';
+  const userInitial = displayName.charAt(0).toUpperCase();
+  const shortName = displayName.includes('@') ? displayName.split('@')[0] : displayName;
+
   const userMenu = document.createElement('div');
   userMenu.className = 'user-menu';
   userMenu.innerHTML = `
     <div class="user-info">
       <div class="user-avatar">${userInitial}</div>
       <div class="user-details">
-        <div class="user-name">${state.currentUser.username}</div>
-        <div class="user-role">${state.currentUser.role}</div>
+        <div class="user-name">${shortName}</div>
+        <div class="user-role">${state.currentUser.role || 'Admin'}</div>
       </div>
     </div>
     <button class="btn-logout" onclick="logout()">
@@ -322,9 +469,65 @@ async function loadDataFromDB() {
   state.display = await getAllDisplay();
   state.transactions = await getAllTransactions();
 
+  // Ensure all products have inventory records
+  await syncProductsWithInventory();
+
+  // Migrate display data to new format (remainingPieces for non-feed)
+  await migrateDisplayData();
+
   // Update dashboard counts
   document.getElementById("total-products").textContent = state.products.length;
   document.getElementById("low-stock-items").textContent = state.inventory.filter(i => i.lowStock).length;
+}
+
+// Migrate old display data to new format with remainingPieces
+async function migrateDisplayData() {
+  for (const display of state.display) {
+    const product = state.products.find(p => p.id === display.productId);
+    if (!product) continue;
+
+    const isFeed = product.category === "Feed";
+
+    // Skip if already migrated or is Feed product
+    if (isFeed || display.remainingPieces !== undefined) continue;
+
+    // Migrate non-feed display to use remainingPieces
+    const piecesPerBox = product.piecesPerBox || 1;
+    display.originalPieces = piecesPerBox;
+    display.remainingPieces = display.remainingKg || piecesPerBox; // Use remainingKg as fallback
+    display.category = product.category;
+
+    // Save to DB
+    await updateDisplay(display.id, {
+      originalPieces: display.originalPieces,
+      remainingPieces: display.remainingPieces,
+      category: display.category
+    });
+
+    console.log(`[Migration] Updated display ${display.id} for ${product.name}: ${display.remainingPieces} pieces`);
+  }
+}
+
+// Ensure every product has an inventory record
+async function syncProductsWithInventory() {
+  for (const product of state.products) {
+    const existingInventory = state.inventory.find(i => i.id === product.id);
+    if (!existingInventory) {
+      // Create inventory record for this product
+      const newInventory = {
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        lowStock: false,
+        stockSacks: 0,
+        stockKg: 0,
+        stockUnits: 0
+      };
+      state.inventory.push(newInventory);
+      await addInventory(newInventory);
+      console.log(`[Sync] Created inventory record for product: ${product.name}`);
+    }
+  }
 }
 
 function loadPreferences() {
@@ -732,18 +935,19 @@ function renderRecentSales() {
   }
 
   container.innerHTML = recentTransactions.map(txn => {
-    const firstItem = txn.items[0];
+    const firstItem = txn.items && txn.items[0];
+    if (!firstItem) return '';
     const itemSummary = txn.items.length > 1
-      ? `${firstItem.name} +${txn.items.length - 1} more`
-      : `${firstItem.name} (${firstItem.quantity} ${firstItem.unit})`;
+      ? `${escapeHtml(firstItem.name)} +${txn.items.length - 1} more`
+      : `${escapeHtml(firstItem.name)} (${firstItem.quantity} ${escapeHtml(firstItem.unit)})`;
     const timeAgo = getTimeAgo(new Date(txn.date));
     const saleNumber = txn.id.split('-').pop();
 
     return `
-      <div class="activity-item" onclick="viewTransactionDetails('${txn.id}')">
+      <div class="activity-item" onclick="viewTransactionDetails('${escapeHtml(txn.id)}')">
         <span class="activity-icon">RCPT</span>
         <div class="activity-details">
-          <strong>Sale #${saleNumber}</strong>
+          <strong>Sale #${escapeHtml(saleNumber)}</strong>
           <p>${itemSummary} - ₱${formatNumber(txn.total)}</p>
         </div>
         <span class="activity-time">${timeAgo}</span>
@@ -794,7 +998,7 @@ function renderProducts(filter = "all", searchTerm = "") {
     grid.innerHTML = `
       <div class="no-results">
         <p>No products found</p>
-        <small>${searchTerm ? `for "${searchTerm}"` : ''}</small>
+        <small>${searchTerm ? `for "${escapeHtml(searchTerm)}"` : ''}</small>
       </div>
     `;
     return;
@@ -803,11 +1007,11 @@ function renderProducts(filter = "all", searchTerm = "") {
   grid.innerHTML = filteredProducts.map(product => `
     <div class="product-card" onclick="selectProduct(${product.id})">
       ${product.image
-        ? `<div class="product-image"><img src="${product.image}" alt="${product.name}"></div>`
+        ? `<div class="product-image"><img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}"></div>`
         : ''}
-      <div class="product-name">${product.name}</div>
-      <div class="product-brand">${product.brand || ''}</div>
-      <div class="product-category">${product.category}</div>
+      <div class="product-name">${escapeHtml(product.name)}</div>
+      <div class="product-brand">${escapeHtml(product.brand || '')}</div>
+      <div class="product-category">${escapeHtml(product.category)}</div>
       <div class="product-price">
         ${product.category === "Feed"
           ? `₱${product.pricePerKg}/kg`
@@ -882,6 +1086,9 @@ function renderUnitOptions(product) {
       <button class="unit-btn" data-value="custom" onclick="selectUnit('custom')">
         Custom KG
       </button>
+      <button class="unit-btn" data-value="feed-combo" onclick="selectUnit('feed-combo')">
+        Custom (Sack + KG)
+      </button>
     `;
     customContainer.style.display = "none";
   } else {
@@ -896,6 +1103,9 @@ function renderUnitOptions(product) {
         </button>
         <button class="unit-btn" data-value="box" onclick="selectUnit('box')">
           Box (${piecesPerBox} pcs) - ₱${product.pricePerBox}
+        </button>
+        <button class="unit-btn" data-value="custom-combo" onclick="selectUnit('custom-combo')">
+          Custom (Box + Pieces)
         </button>
       `;
     } else {
@@ -912,6 +1122,15 @@ function renderUnitOptions(product) {
 
 // Track if custom kg listener is already attached
 let customKgListenerAttached = false;
+let customComboListenerAttached = false;
+
+// State for custom combo (boxes + pieces) - for non-feed products
+let customComboBoxes = 0;
+let customComboPieces = 0;
+
+// State for feed combo (sacks + kg) - for feed products
+let feedComboSacks = 0;
+let feedComboKg = 0;
 
 function selectUnit(unit) {
   state.selectedUnit = unit;
@@ -926,8 +1145,11 @@ function selectUnit(unit) {
 
   // Show/hide custom KG input
   const customContainer = document.getElementById("custom-kg-container");
+  const customComboContainer = document.getElementById("custom-combo-container");
+
   if (unit === "custom") {
     customContainer.style.display = "block";
+    if (customComboContainer) customComboContainer.style.display = "none";
     document.getElementById("custom-kg").focus();
 
     // Only add listener once to prevent memory leak
@@ -938,11 +1160,218 @@ function selectUnit(unit) {
       });
       customKgListenerAttached = true;
     }
+  } else if (unit === "custom-combo") {
+    customContainer.style.display = "none";
+    hideFeedComboInputs();
+    showCustomComboInputs();
+    // Hide quantity section when using custom combo
+    const quantitySection = document.querySelector(".quantity-selection");
+    if (quantitySection) quantitySection.style.display = "none";
+  } else if (unit === "feed-combo") {
+    customContainer.style.display = "none";
+    hideCustomComboInputs();
+    showFeedComboInputs();
+    // Hide quantity section when using feed combo
+    const quantitySection = document.querySelector(".quantity-selection");
+    if (quantitySection) quantitySection.style.display = "none";
   } else {
     customContainer.style.display = "none";
+    hideCustomComboInputs();
+    hideFeedComboInputs();
+    // Show quantity section for other units
+    const quantitySection = document.querySelector(".quantity-selection");
+    if (quantitySection) quantitySection.style.display = "block";
   }
 
   updatePreviewPrice();
+}
+
+function hideCustomComboInputs() {
+  const container = document.getElementById("custom-combo-container");
+  if (container) container.style.display = "none";
+}
+
+function hideFeedComboInputs() {
+  const container = document.getElementById("feed-combo-container");
+  if (container) container.style.display = "none";
+}
+
+function showCustomComboInputs() {
+  let container = document.getElementById("custom-combo-container");
+
+  if (!container) {
+    // Create the custom combo container if it doesn't exist
+    container = document.createElement("div");
+    container.id = "custom-combo-container";
+    container.className = "custom-combo-container";
+
+    const product = state.selectedProduct;
+    const piecesPerBox = product?.piecesPerBox || 12;
+
+    container.innerHTML = `
+      <div class="combo-input-row">
+        <div class="combo-input-group">
+          <label>Boxes</label>
+          <div class="combo-stepper">
+            <button type="button" class="stepper-btn" onclick="adjustComboBoxes(-1)">-</button>
+            <input type="number" id="combo-boxes" value="0" min="0" readonly>
+            <button type="button" class="stepper-btn" onclick="adjustComboBoxes(1)">+</button>
+          </div>
+        </div>
+        <span class="combo-plus">+</span>
+        <div class="combo-input-group">
+          <label>Pieces</label>
+          <div class="combo-stepper">
+            <button type="button" class="stepper-btn" onclick="adjustComboPieces(-1)">-</button>
+            <input type="number" id="combo-pieces" value="0" min="0" max="${piecesPerBox - 1}" readonly>
+            <button type="button" class="stepper-btn" onclick="adjustComboPieces(1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="combo-summary" id="combo-summary">
+        Total: 0 pieces
+      </div>
+    `;
+
+    // Insert after the unit buttons, before quantity selection
+    const quantitySelection = document.querySelector(".quantity-selection");
+    if (quantitySelection) {
+      quantitySelection.parentNode.insertBefore(container, quantitySelection);
+    }
+  }
+
+  container.style.display = "block";
+
+  // Reset values
+  customComboBoxes = 0;
+  customComboPieces = 0;
+  document.getElementById("combo-boxes").value = 0;
+  document.getElementById("combo-pieces").value = 0;
+  updateComboSummary();
+}
+
+function adjustComboBoxes(delta) {
+  customComboBoxes = Math.max(0, customComboBoxes + delta);
+  document.getElementById("combo-boxes").value = customComboBoxes;
+  updateComboSummary();
+  updatePreviewPrice();
+}
+
+function adjustComboPieces(delta) {
+  const product = state.selectedProduct;
+  const maxPieces = (product?.piecesPerBox || 12) - 1;
+  customComboPieces = Math.max(0, Math.min(maxPieces, customComboPieces + delta));
+  document.getElementById("combo-pieces").value = customComboPieces;
+  updateComboSummary();
+  updatePreviewPrice();
+}
+
+function updateComboSummary() {
+  const product = state.selectedProduct;
+  const piecesPerBox = product?.piecesPerBox || 12;
+  const totalPieces = (customComboBoxes * piecesPerBox) + customComboPieces;
+
+  const summaryEl = document.getElementById("combo-summary");
+  if (summaryEl) {
+    if (customComboBoxes > 0 && customComboPieces > 0) {
+      summaryEl.textContent = `Total: ${customComboBoxes} box(es) + ${customComboPieces} piece(s) = ${totalPieces} pieces`;
+    } else if (customComboBoxes > 0) {
+      summaryEl.textContent = `Total: ${customComboBoxes} box(es) = ${totalPieces} pieces`;
+    } else if (customComboPieces > 0) {
+      summaryEl.textContent = `Total: ${customComboPieces} piece(s)`;
+    } else {
+      summaryEl.textContent = `Total: 0 pieces`;
+    }
+  }
+}
+
+// ============================================
+// Feed Combo (Sacks + KG) Functions
+// ============================================
+
+function showFeedComboInputs() {
+  let container = document.getElementById("feed-combo-container");
+
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "feed-combo-container";
+    container.className = "custom-combo-container";
+
+    const product = state.selectedProduct;
+    const kgPerSack = product?.kgPerSack || 25;
+
+    container.innerHTML = `
+      <div class="combo-input-row">
+        <div class="combo-input-group">
+          <label>Sacks</label>
+          <div class="combo-stepper">
+            <button type="button" class="stepper-btn" onclick="adjustFeedSacks(-1)">-</button>
+            <input type="number" id="feed-sacks" value="0" min="0" readonly>
+            <button type="button" class="stepper-btn" onclick="adjustFeedSacks(1)">+</button>
+          </div>
+        </div>
+        <span class="combo-plus">+</span>
+        <div class="combo-input-group">
+          <label>KG</label>
+          <div class="combo-stepper">
+            <button type="button" class="stepper-btn" onclick="adjustFeedKg(-0.25)">-</button>
+            <input type="number" id="feed-kg" value="0" min="0" step="0.25" readonly>
+            <button type="button" class="stepper-btn" onclick="adjustFeedKg(0.25)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="combo-summary" id="feed-combo-summary">
+        Total: 0 kg
+      </div>
+    `;
+
+    const quantitySelection = document.querySelector(".quantity-selection");
+    if (quantitySelection) {
+      quantitySelection.parentNode.insertBefore(container, quantitySelection);
+    }
+  }
+
+  container.style.display = "block";
+
+  // Reset values
+  feedComboSacks = 0;
+  feedComboKg = 0;
+  document.getElementById("feed-sacks").value = 0;
+  document.getElementById("feed-kg").value = 0;
+  updateFeedComboSummary();
+}
+
+function adjustFeedSacks(delta) {
+  feedComboSacks = Math.max(0, feedComboSacks + delta);
+  document.getElementById("feed-sacks").value = feedComboSacks;
+  updateFeedComboSummary();
+  updatePreviewPrice();
+}
+
+function adjustFeedKg(delta) {
+  feedComboKg = Math.max(0, Math.round((feedComboKg + delta) * 100) / 100);
+  document.getElementById("feed-kg").value = feedComboKg;
+  updateFeedComboSummary();
+  updatePreviewPrice();
+}
+
+function updateFeedComboSummary() {
+  const product = state.selectedProduct;
+  const kgPerSack = product?.kgPerSack || 25;
+  const totalKg = (feedComboSacks * kgPerSack) + feedComboKg;
+
+  const summaryEl = document.getElementById("feed-combo-summary");
+  if (summaryEl) {
+    if (feedComboSacks > 0 && feedComboKg > 0) {
+      summaryEl.textContent = `Total: ${feedComboSacks} sack(s) + ${feedComboKg} kg = ${totalKg.toFixed(2)} kg`;
+    } else if (feedComboSacks > 0) {
+      summaryEl.textContent = `Total: ${feedComboSacks} sack(s) = ${totalKg.toFixed(2)} kg`;
+    } else if (feedComboKg > 0) {
+      summaryEl.textContent = `Total: ${feedComboKg} kg`;
+    } else {
+      summaryEl.textContent = `Total: 0 kg`;
+    }
+  }
 }
 
 function increaseQuantity() {
@@ -983,6 +1412,11 @@ function updatePreviewPrice() {
       }
     } else if (state.selectedUnit === "custom") {
       price = product.pricePerKg * state.customKg * state.quantity;
+    } else if (state.selectedUnit === "feed-combo") {
+      // Feed combo: sacks + kg
+      const sackPrice = product.pricePerSack * feedComboSacks;
+      const kgPrice = product.pricePerKg * feedComboKg;
+      price = sackPrice + kgPrice;
     } else {
       const kg = parseFloat(state.selectedUnit);
       price = product.pricePerKg * kg * state.quantity;
@@ -999,14 +1433,13 @@ function updatePreviewPrice() {
         price = regularPrice;
       }
     } else if (state.selectedUnit === "piece") {
-      regularPrice = product.pricePerPiece * state.quantity;
-      // Check for wholesale
-      if (product.wholesalePrice && product.wholesaleMin && state.quantity >= product.wholesaleMin) {
-        price = product.wholesalePrice * state.quantity;
-        isWholesale = true;
-      } else {
-        price = regularPrice;
-      }
+      // No wholesale for individual pieces - wholesale is for boxes only
+      price = product.pricePerPiece * state.quantity;
+    } else if (state.selectedUnit === "custom-combo") {
+      // Custom combo: boxes + pieces
+      const boxPrice = product.pricePerBox * customComboBoxes;
+      const piecePrice = product.pricePerPiece * customComboPieces;
+      price = boxPrice + piecePrice;
     }
   }
 
@@ -1029,9 +1462,10 @@ function updatePreviewPrice() {
     // Remove wholesale hint if exists
     document.getElementById("wholesale-hint")?.remove();
 
-    // Show hint for how many more needed for wholesale
-    if (product.wholesaleMin && product.wholesalePrice && (state.selectedUnit === "sack" || state.selectedUnit === "box" || state.selectedUnit === "piece")) {
+    // Show hint for how many more needed for wholesale (only for sacks/boxes, not pieces)
+    if (product.wholesaleMin && product.wholesalePrice && (state.selectedUnit === "sack" || state.selectedUnit === "box")) {
       const remaining = product.wholesaleMin - state.quantity;
+      const unitName = state.selectedUnit === "sack" ? "sacks" : "boxes";
       if (remaining > 0) {
         let hintEl = document.getElementById("wholesale-hint");
         if (!hintEl) {
@@ -1041,7 +1475,7 @@ function updatePreviewPrice() {
           previewEl.parentNode.appendChild(hintEl);
         }
         hintEl.className = "wholesale-hint pending";
-        hintEl.innerHTML = `Add ${remaining} more for wholesale price!`;
+        hintEl.innerHTML = `Add ${remaining} more ${unitName} for wholesale price!`;
       }
     }
   }
@@ -1056,6 +1490,16 @@ function addToCart() {
 
   if (state.selectedUnit === "custom" && state.customKg <= 0) {
     showToast("Please enter a valid KG amount");
+    return;
+  }
+
+  if (state.selectedUnit === "custom-combo" && customComboBoxes <= 0 && customComboPieces <= 0) {
+    showToast("Please select at least 1 box or piece");
+    return;
+  }
+
+  if (state.selectedUnit === "feed-combo" && feedComboSacks <= 0 && feedComboKg <= 0) {
+    showToast("Please select at least 1 sack or enter kg amount");
     return;
   }
 
@@ -1085,6 +1529,26 @@ function addToCart() {
       }
       price = product.pricePerKg * state.customKg * state.quantity;
       unitLabel = `${kgAmount.toFixed(2)} KG`;
+    } else if (state.selectedUnit === "feed-combo") {
+      // Feed combo: sacks + kg
+      // Check if enough display stock for kg portion
+      if (feedComboKg > 0) {
+        const displayStock = getDisplayKgForProduct(product.id);
+        if (displayStock < feedComboKg) {
+          showToast(`Not enough display stock for kg! Available: ${displayStock.toFixed(2)} kg`);
+          return;
+        }
+      }
+      const sackPrice = product.pricePerSack * feedComboSacks;
+      const kgPrice = product.pricePerKg * feedComboKg;
+      price = sackPrice + kgPrice;
+      kgAmount = feedComboKg; // Only kg portion deducts from display
+
+      // Build label
+      const parts = [];
+      if (feedComboSacks > 0) parts.push(`${feedComboSacks} Sack(s)`);
+      if (feedComboKg > 0) parts.push(`${feedComboKg} KG`);
+      unitLabel = parts.join(' + ');
     } else {
       const kg = parseFloat(state.selectedUnit);
       kgAmount = kg * state.quantity;
@@ -1110,30 +1574,84 @@ function addToCart() {
       }
       unitLabel = `${state.quantity} Box(es)${isWholesale ? ' (Wholesale)' : ''}`;
     } else if (state.selectedUnit === "piece") {
-      // Check if wholesale pricing applies (for pieces)
-      if (product.wholesalePrice && product.wholesaleMin && state.quantity >= product.wholesaleMin) {
-        price = product.wholesalePrice * state.quantity;
-        isWholesale = true;
-      } else {
-        price = product.pricePerPiece * state.quantity;
+      // Check if enough display stock for pieces
+      const displayStock = getDisplayPiecesForProduct(product.id);
+      const piecesNeeded = state.quantity;
+      if (displayStock < piecesNeeded) {
+        showToast(`Not enough display stock! Available: ${displayStock} piece(s)`);
+        return;
       }
-      unitLabel = `${state.quantity} Piece(s)${isWholesale ? ' (Wholesale)' : ''}`;
+      // No wholesale for individual pieces - wholesale is for boxes only
+      price = product.pricePerPiece * state.quantity;
+      unitLabel = `${state.quantity} Piece(s)`;
+    } else if (state.selectedUnit === "custom-combo") {
+      // Custom combo: boxes + pieces
+      // Check if enough display stock for pieces
+      if (customComboPieces > 0) {
+        const displayStock = getDisplayPiecesForProduct(product.id);
+        if (displayStock < customComboPieces) {
+          showToast(`Not enough display stock for pieces! Available: ${displayStock} piece(s)`);
+          return;
+        }
+      }
+      const boxPrice = product.pricePerBox * customComboBoxes;
+      const piecePrice = product.pricePerPiece * customComboPieces;
+      price = boxPrice + piecePrice;
+
+      // Build label
+      const parts = [];
+      if (customComboBoxes > 0) parts.push(`${customComboBoxes} Box(es)`);
+      if (customComboPieces > 0) parts.push(`${customComboPieces} Piece(s)`);
+      unitLabel = parts.join(' + ');
     }
   }
 
   // Calculate unit price for transaction history
-  const unitPrice = price / state.quantity;
+  let unitPrice = price;
+  if (state.selectedUnit !== "custom-combo" && state.selectedUnit !== "feed-combo") {
+    unitPrice = price / state.quantity;
+  }
+
+  // Track amounts for deduction during checkout
+  let pieceAmount = 0; // For non-feed piece sales (display deduction)
+  let boxAmount = 0;   // For non-feed box sales (inventory deduction)
+  let sackAmount = 0;  // For feed sack sales (inventory deduction)
+
+  if (product.category === "Feed") {
+    if (state.selectedUnit === "sack") {
+      sackAmount = state.quantity;
+    } else if (state.selectedUnit === "feed-combo") {
+      // Feed combo: sacks deduct from inventory, kg deducts from display
+      sackAmount = feedComboSacks;
+      // kgAmount already set above for display deduction
+    }
+    // kgAmount already set for kg sales
+  } else {
+    if (state.selectedUnit === "piece") {
+      pieceAmount = state.quantity;
+    } else if (state.selectedUnit === "box") {
+      boxAmount = state.quantity;
+    } else if (state.selectedUnit === "custom-combo") {
+      // Custom combo: boxes deduct from inventory, pieces deduct from display
+      boxAmount = customComboBoxes;
+      pieceAmount = customComboPieces;
+    }
+  }
 
   const cartItem = {
     id: Date.now(),
     productId: product.id,
     productName: product.name,
     brand: product.brand || '',
+    category: product.category,
     unit: unitLabel,
     unitPrice: unitPrice,
     price: price,
     quantity: state.quantity,
-    kgAmount: kgAmount, // Store kg amount for display deduction on checkout
+    kgAmount: kgAmount,     // For Feed kg sales - deduct from display
+    pieceAmount: pieceAmount, // For non-feed piece sales - deduct from display
+    boxAmount: boxAmount,     // For non-feed box sales - deduct from inventory
+    sackAmount: sackAmount,   // For Feed sack sales - deduct from inventory
     isWholesale: isWholesale
   };
 
@@ -1162,8 +1680,8 @@ function updateCart() {
   container.innerHTML = state.cart.map(item => `
     <div class="cart-item${item.isWholesale ? ' wholesale-item' : ''}">
       <div class="cart-item-info">
-        <h4>${item.productName}${item.isWholesale ? ' <span class="wholesale-badge">WHOLESALE</span>' : ''}</h4>
-        <p>${item.unit}</p>
+        <h4>${escapeHtml(item.productName)}${item.isWholesale ? ' <span class="wholesale-badge">WHOLESALE</span>' : ''}</h4>
+        <p>${escapeHtml(item.unit)}</p>
       </div>
       <div class="cart-item-price">
         <span class="price">₱${item.price.toFixed(2)}</span>
@@ -1325,30 +1843,87 @@ async function confirmCheckout() {
       })),
       subtotal: state.cartTotal,
       total: state.cartTotal,
-      paymentMethod: state.paymentMethod
+      paymentMethod: state.paymentMethod,
+      syncStatus: 'pending',
+      lastModified: new Date().toISOString()
     };
 
-    // Add to transactions (state and DB)
-    state.transactions.unshift(newTransaction);
-    await addTransaction(newTransaction);
+    // Store original state for potential rollback
+    const originalDisplayState = JSON.parse(JSON.stringify(state.display));
+    const originalInventoryState = JSON.parse(JSON.stringify(state.inventory));
 
-    // Deduct kg amounts from display for Feed products
-    for (const item of state.cart) {
-      if (item.kgAmount > 0) {
-        await deductFromDisplay(item.productId, item.kgAmount);
+    try {
+      // Process all deductions FIRST before committing the transaction
+      for (const item of state.cart) {
+        console.log(`[Checkout] Processing item:`, {
+          product: item.productName,
+          category: item.category,
+          kgAmount: item.kgAmount,
+          pieceAmount: item.pieceAmount,
+          boxAmount: item.boxAmount,
+          sackAmount: item.sackAmount
+        });
+
+        // 1. Feed products - kg sales deduct from display
+        if (item.kgAmount > 0) {
+          console.log(`[Checkout] Deducting ${item.kgAmount} kg from display`);
+          const success = await deductFromDisplay(item.productId, item.kgAmount);
+          if (!success) {
+            throw new Error(`Insufficient display stock for ${item.productName}`);
+          }
+        }
+
+        // 2. Feed products - sack sales deduct from inventory
+        if (item.sackAmount > 0) {
+          console.log(`[Checkout] Deducting ${item.sackAmount} sacks from inventory`);
+          const success = await deductFromInventory(item.productId, item.sackAmount, 'sack');
+          if (!success) {
+            throw new Error(`Insufficient inventory for ${item.productName}`);
+          }
+        }
+
+        // 3. Non-feed products - piece sales deduct from display
+        if (item.pieceAmount > 0) {
+          console.log(`[Checkout] Deducting ${item.pieceAmount} pieces from display`);
+          const success = await deductPiecesFromDisplay(item.productId, item.pieceAmount);
+          if (!success) {
+            throw new Error(`Insufficient display stock for ${item.productName}`);
+          }
+        }
+
+        // 4. Non-feed products - box sales deduct from inventory
+        if (item.boxAmount > 0) {
+          console.log(`[Checkout] Deducting ${item.boxAmount} boxes from inventory`);
+          const success = await deductFromInventory(item.productId, item.boxAmount, 'box');
+          if (!success) {
+            throw new Error(`Insufficient inventory for ${item.productName}`);
+          }
+        }
       }
-    }
 
-    // Clear cart and show success
-    state.cart = [];
-    updateCart();
-    closeCheckoutModal();
-    hideLoading();
-    showToast("Transaction completed successfully!");
+      // All deductions successful - now save the transaction
+      await addTransactionWithSync(newTransaction);
+      state.transactions.unshift(newTransaction);
+
+      // Clear cart and show success
+      state.cart = [];
+      updateCart();
+      closeCheckoutModal();
+      hideLoading();
+      showToast("Transaction completed successfully!");
+    } catch (deductError) {
+      // Rollback: restore state if deductions failed
+      console.error("Checkout deduction error:", deductError);
+      state.display = originalDisplayState;
+      state.inventory = originalInventoryState;
+      renderDisplay();
+      renderInventory();
+      throw new Error(`Checkout failed: ${deductError.message}`);
+    }
   } catch (error) {
     hideLoading();
     console.error("Checkout error:", error);
-    showToast("Error processing transaction. Please try again.");
+    showToast(error.message || "Error processing transaction. Please try again.");
   }
 }
 
@@ -1845,12 +2420,18 @@ function renderInventory(filter = currentInventoryFilter) {
       const totalSacks = item.stockSacks + displayCount; // Total = stored + on display
 
       return `
-        <div class="inventory-card ${item.lowStock ? 'low-stock' : ''}">
+        <div class="inventory-card ${item.lowStock ? 'low-stock' : ''}" onclick="openEditInventoryModal(${item.id})">
           <div class="inventory-card-header">
             <div class="inventory-info">
-              <h3>${item.name}</h3>
-              <span class="category">${item.category}</span>
+              <h3>${escapeHtml(item.name)}</h3>
+              <span class="category">${escapeHtml(item.category)}</span>
             </div>
+            <button class="inventory-edit-btn" onclick="event.stopPropagation(); openEditInventoryModal(${item.id})">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
           </div>
           <div class="stock-details">
             <div class="stock-row">
@@ -1870,18 +2451,37 @@ function renderInventory(filter = currentInventoryFilter) {
         </div>
       `;
     } else {
+      // Get display info for Non-feed products
+      const displayCount = state.display.filter(d => d.productId === item.id).length;
+      const displayPieces = getDisplayPiecesForProduct(item.id);
+      const totalBoxes = item.stockUnits + displayCount; // Total = stored + on display (as boxes)
+
       return `
-        <div class="inventory-card ${item.lowStock ? 'low-stock' : ''}">
+        <div class="inventory-card ${item.lowStock ? 'low-stock' : ''}" onclick="openEditInventoryModal(${item.id})">
           <div class="inventory-card-header">
             <div class="inventory-info">
-              <h3>${item.name}</h3>
-              <span class="category">${item.category}</span>
+              <h3>${escapeHtml(item.name)}</h3>
+              <span class="category">${escapeHtml(item.category)}</span>
             </div>
+            <button class="inventory-edit-btn" onclick="event.stopPropagation(); openEditInventoryModal(${item.id})">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
           </div>
           <div class="stock-details">
             <div class="stock-row">
-              <span class="stock-label">Stock (Units)</span>
-              <span class="stock-value ${item.stockUnits < 20 ? 'warning' : ''}">${item.stockUnits} Units</span>
+              <span class="stock-label">Total Boxes</span>
+              <span class="stock-value">${totalBoxes} Boxes</span>
+            </div>
+            <div class="stock-row">
+              <span class="stock-label">In Storage</span>
+              <span class="stock-value ${item.stockUnits < 5 ? 'warning' : ''}">${item.stockUnits} Boxes</span>
+            </div>
+            <div class="stock-row display-row">
+              <span class="stock-label">On Display</span>
+              <span class="stock-value display-value">${displayCount} Boxes (${displayPieces} pieces)</span>
             </div>
           </div>
           ${item.lowStock ? '<span class="low-stock-badge">LOW STOCK</span>' : ''}
@@ -1906,13 +2506,97 @@ function filterInventory(category, e) {
 }
 
 function searchInventory(searchTerm) {
-  const search = searchTerm.toLowerCase();
+  // Get search term from parameter or input element
+  const search = (searchTerm || document.getElementById("inventory-search").value || "").toLowerCase();
   const cards = document.querySelectorAll(".inventory-card");
 
   cards.forEach(card => {
     const name = card.querySelector("h3").textContent.toLowerCase();
-    card.style.display = name.includes(search) ? "block" : "none";
+    card.style.display = name.includes(search) ? "" : "none";
   });
+}
+
+// ============================================
+// Inventory Edit Functions
+// ============================================
+
+let editingInventoryId = null;
+
+function openEditInventoryModal(inventoryId) {
+  const item = state.inventory.find(i => i.id === inventoryId);
+  if (!item) {
+    showToast("Inventory item not found");
+    return;
+  }
+
+  editingInventoryId = inventoryId;
+
+  // Set product info
+  document.getElementById("edit-inventory-name").textContent = item.name;
+  document.getElementById("edit-inventory-category").textContent = item.category;
+
+  // Show/hide appropriate fields based on category
+  if (item.category === "Feed") {
+    document.getElementById("feed-stock-fields").style.display = "block";
+    document.getElementById("unit-stock-fields").style.display = "none";
+    document.getElementById("edit-stock-sacks").value = item.stockSacks || 0;
+  } else {
+    document.getElementById("feed-stock-fields").style.display = "none";
+    document.getElementById("unit-stock-fields").style.display = "block";
+    document.getElementById("edit-stock-units").value = item.stockUnits || 0;
+  }
+
+  // Set low stock threshold
+  document.getElementById("edit-low-stock-threshold").value = item.lowStockThreshold || 0;
+
+  // Show modal
+  document.getElementById("edit-inventory-modal").classList.add("active");
+}
+
+function closeEditInventoryModal() {
+  document.getElementById("edit-inventory-modal").classList.remove("active");
+  editingInventoryId = null;
+}
+
+async function saveInventoryStock() {
+  if (!editingInventoryId) {
+    showToast("No inventory item selected");
+    return;
+  }
+
+  const item = state.inventory.find(i => i.id === editingInventoryId);
+  if (!item) {
+    showToast("Inventory item not found");
+    return;
+  }
+
+  // Get threshold value
+  const threshold = parseInt(document.getElementById("edit-low-stock-threshold").value) || 0;
+  item.lowStockThreshold = threshold;
+
+  // Get values based on category and calculate low stock status
+  if (item.category === "Feed") {
+    const newSacks = parseInt(document.getElementById("edit-stock-sacks").value) || 0;
+    item.stockSacks = newSacks;
+    // Auto-calculate low stock based on threshold
+    item.lowStock = newSacks <= threshold && threshold > 0;
+  } else {
+    const newUnits = parseInt(document.getElementById("edit-stock-units").value) || 0;
+    item.stockUnits = newUnits;
+    // Auto-calculate low stock based on threshold
+    item.lowStock = newUnits <= threshold && threshold > 0;
+  }
+
+  // Save to database with sync
+  await updateInventoryWithSync(editingInventoryId, item);
+
+  // Update UI
+  renderInventory();
+  closeEditInventoryModal();
+  showToast("Stock updated successfully");
+
+  // Update dashboard low stock count
+  document.getElementById("low-stock-items").textContent = state.inventory.filter(i => i.lowStock).length;
 }
 
 // ============================================
@@ -1920,12 +2604,13 @@ function searchInventory(searchTerm) {
 // ============================================
 
 function searchDisplay(searchTerm) {
-  const search = searchTerm.toLowerCase();
+  // Get search term from parameter or input element
+  const search = (searchTerm || document.getElementById("display-search").value || "").toLowerCase();
   const cards = document.querySelectorAll(".display-card");
 
   cards.forEach(card => {
     const name = card.querySelector("h3").textContent.toLowerCase();
-    card.style.display = name.includes(search) ? "block" : "none";
+    card.style.display = name.includes(search) ? "" : "none";
   });
 }
 
@@ -1961,17 +2646,34 @@ function renderDisplay() {
   }
 
   grid.innerHTML = state.display.map(item => {
-    const usedKg = item.originalKg - item.remainingKg;
-    const percentUsed = (usedKg / item.originalKg) * 100;
-    const isLow = item.remainingKg < 5;
     const product = state.products.find(p => p.id === item.productId);
+    const isFeed = item.category === "Feed" || (product && product.category === "Feed");
+
+    // Use appropriate fields based on product type
+    let original, remaining, unit;
+    if (isFeed) {
+      original = item.originalKg || 0;
+      remaining = item.remainingKg || 0;
+      unit = "kg";
+    } else {
+      original = item.originalPieces || item.originalKg || 0;  // Fallback for old data
+      remaining = item.remainingPieces !== undefined ? item.remainingPieces : (item.remainingKg || 0);
+      unit = "piece(s)";
+    }
+
+    const usedAmount = original - remaining;
+    const percentUsed = original > 0 ? (usedAmount / original) * 100 : 0;
+    // For non-feed: low when less than 20% of original pieces remain
+    const lowThreshold = isFeed ? 5 : Math.max(1, Math.floor(original * 0.2));
+    const isLow = remaining < lowThreshold;
 
     return `
       <div class="display-card ${isLow ? 'low-display' : ''}">
         <div class="display-card-header">
           <div class="display-info">
-            <h3>${item.productName}</h3>
+            <h3>${escapeHtml(item.productName)}</h3>
             <span class="display-date">Opened: ${formatDate(item.displayDate)}</span>
+            <span class="display-category">${escapeHtml(item.category || (product ? product.category : 'Unknown'))}</span>
           </div>
         </div>
         <div class="display-stock">
@@ -1980,18 +2682,18 @@ function renderDisplay() {
               <div class="progress-bar-fill" style="width: ${100 - percentUsed}%"></div>
             </div>
             <div class="display-kg-info">
-              <span class="remaining-kg">${item.remainingKg.toFixed(2)} kg</span>
-              <span class="original-kg">/ ${item.originalKg} kg</span>
+              <span class="remaining-kg">${isFeed ? remaining.toFixed(2) : remaining} ${unit}</span>
+              <span class="original-kg">/ ${isFeed ? original.toFixed(2) : original} ${unit}</span>
             </div>
           </div>
           <div class="display-stats">
             <div class="stat">
               <span class="stat-label">Sold</span>
-              <span class="stat-value">${usedKg.toFixed(2)} kg</span>
+              <span class="stat-value">${isFeed ? usedAmount.toFixed(2) : usedAmount} ${unit}</span>
             </div>
             <div class="stat">
               <span class="stat-label">Remaining</span>
-              <span class="stat-value ${isLow ? 'warning' : ''}">${item.remainingKg.toFixed(2)} kg</span>
+              <span class="stat-value ${isLow ? 'warning' : ''}">${isFeed ? remaining.toFixed(2) : remaining} ${unit}</span>
             </div>
           </div>
         </div>
@@ -2008,20 +2710,23 @@ function formatDate(dateStr) {
 }
 
 function openAddDisplayModal() {
-  // Populate feed products dropdown
+  // Populate all products dropdown
   const select = document.getElementById("display-product-select");
-  const feedProducts = state.products.filter(p => p.category === "Feed");
+  const allProducts = state.products;
 
-  select.innerHTML = '<option value="">-- Select a feed product --</option>' +
-    feedProducts.map(p => {
+  select.innerHTML = '<option value="">-- Select a product --</option>' +
+    allProducts.map(p => {
       const inv = state.inventory.find(i => i.id === p.id);
-      const availableSacks = inv ? inv.stockSacks : 0;
+      // For Feed: use sacks, for others: use boxes (each box = piecesPerBox pieces)
+      const isFeed = p.category === "Feed";
+      const availableStock = isFeed ? (inv ? inv.stockSacks : 0) : (inv ? inv.stockUnits : 0);
+      const stockUnit = isFeed ? "sacks" : "boxes";
       // Check how many are already on display
       const onDisplay = state.display.filter(d => d.productId === p.id).length;
-      const remaining = availableSacks - onDisplay;
+      const remaining = availableStock - onDisplay;
 
       return `<option value="${p.id}" ${remaining <= 0 ? 'disabled' : ''}>
-        ${p.name} (${remaining} sacks available)
+        ${escapeHtml(p.name)} (${remaining} ${stockUnit} available)
       </option>`;
     }).join("");
 
@@ -2037,10 +2742,11 @@ function openAddDisplayModal() {
     if (productId) {
       const product = state.products.find(p => p.id === productId);
       const inv = state.inventory.find(i => i.id === productId);
+      const isFeed = product.category === "Feed";
 
       document.getElementById("display-info-name").textContent = product.name;
-      document.getElementById("display-info-kg").textContent = `${product.kgPerSack || 25} kg`;
-      document.getElementById("display-info-stock").textContent = `${inv ? inv.stockSacks : 0} sacks`;
+      document.getElementById("display-info-kg").textContent = isFeed ? `${product.kgPerSack || 25} kg/sack` : `${product.piecesPerBox || 1} pieces/box`;
+      document.getElementById("display-info-stock").textContent = isFeed ? `${inv ? inv.stockSacks : 0} sacks` : `${inv ? inv.stockUnits : 0} boxes`;
       document.getElementById("display-product-info").style.display = "block";
     } else {
       document.getElementById("display-product-info").style.display = "none";
@@ -2071,42 +2777,74 @@ async function addToDisplay() {
   const product = state.products.find(p => p.id === productId);
   const inv = state.inventory.find(i => i.id === productId);
 
-  if (!inv || inv.stockSacks <= 0) {
+  if (!product) {
+    showToast("Product not found");
+    return;
+  }
+
+  const isFeed = product.category === "Feed";
+
+  // Check stock availability based on product type
+  const availableStock = isFeed ? (inv ? inv.stockSacks : 0) : (inv ? inv.stockUnits : 0);
+
+  if (!inv || availableStock <= 0) {
     showToast("No stock available");
     return;
   }
 
-  // Check if we have available sacks (not already on display)
+  // Check if we have available stock (not already on display)
   const onDisplay = state.display.filter(d => d.productId === productId).length;
-  if (onDisplay >= inv.stockSacks) {
-    showToast("All sacks are already on display");
+  if (onDisplay >= availableStock) {
+    showToast("All stock is already on display");
     return;
   }
 
-  const kgPerSack = product.kgPerSack || 25;
+  // For Feed: use kg per sack, for others: use pieces per box
+  const displayQuantity = isFeed ? (product.kgPerSack || 25) : (product.piecesPerBox || 1);
+  const quantityLabel = isFeed ? "kg" : "piece(s)";
 
-  // Add to display
+  // Add to display with sync metadata
   const newDisplay = {
     id: Date.now(),
     productId: productId,
     productName: product.name,
     displayDate: displayDate,
-    originalKg: kgPerSack,
-    remainingKg: kgPerSack
+    category: product.category,
+    syncStatus: 'pending',
+    lastModified: new Date().toISOString()
   };
 
-  state.display.push(newDisplay);
-  await addDisplay(newDisplay);
+  // Set the appropriate quantity field based on product type
+  if (isFeed) {
+    newDisplay.originalKg = displayQuantity;
+    newDisplay.remainingKg = displayQuantity;
+  } else {
+    newDisplay.originalPieces = displayQuantity;
+    newDisplay.remainingPieces = displayQuantity;
+    newDisplay.remainingKg = 0; // Keep for compatibility
+  }
 
-  // Update inventory - reduce stock sack by 1
-  inv.stockSacks -= 1;
-  inv.stockKg -= kgPerSack;
-  await updateInventory(productId, { stockSacks: inv.stockSacks, stockKg: inv.stockKg });
+  // Save to DB first, then update state
+  await addDisplayWithSync(newDisplay);
+  state.display.push(newDisplay);
+
+  // Update inventory - reduce stock by 1
+  if (isFeed) {
+    const newStockSacks = inv.stockSacks - 1;
+    const newStockKg = (inv.stockKg || 0) - displayQuantity;
+    await updateInventoryWithSync(productId, { stockSacks: newStockSacks, stockKg: newStockKg });
+    inv.stockSacks = newStockSacks;
+    inv.stockKg = newStockKg;
+  } else {
+    const newStockUnits = inv.stockUnits - 1;
+    await updateInventoryWithSync(productId, { stockUnits: newStockUnits });
+    inv.stockUnits = newStockUnits;
+  }
 
   renderDisplay();
   renderInventory();
   closeAddDisplayModal();
-  showToast(`${product.name} added to display (${kgPerSack} kg)`);
+  showToast(`${product.name} added to display (${displayQuantity} ${quantityLabel})`);
 }
 
 async function removeFromDisplay(displayId) {
@@ -2120,22 +2858,33 @@ async function removeFromDisplay(displayId) {
     }
   }
 
-  // Remove from display (state and DB)
+  // Remove from display (DB first, then state)
+  await deleteDisplayWithSync(displayId);
   state.display = state.display.filter(d => d.id !== displayId);
-  await deleteDisplay(displayId);
 
   renderDisplay();
   showToast("Display removed");
 }
 
-// Get total display kg for a product
+// Get total display kg for a product (Feed)
 function getDisplayKgForProduct(productId) {
   return state.display
     .filter(d => d.productId === productId)
     .reduce((total, d) => total + d.remainingKg, 0);
 }
 
-// Deduct kg from display (used by POS)
+// Get total display pieces for a product (Non-feed)
+function getDisplayPiecesForProduct(productId) {
+  return state.display
+    .filter(d => d.productId === productId)
+    .reduce((total, d) => {
+      // Use remainingPieces if available, else fall back to remainingKg (old format)
+      const pieces = d.remainingPieces !== undefined ? d.remainingPieces : (d.remainingKg || 0);
+      return total + pieces;
+    }, 0);
+}
+
+// Deduct kg from display (used by POS for Feed products)
 async function deductFromDisplay(productId, kgAmount) {
   let remaining = kgAmount;
 
@@ -2148,27 +2897,111 @@ async function deductFromDisplay(productId, kgAmount) {
     if (remaining <= 0) break;
 
     if (display.remainingKg >= remaining) {
-      display.remainingKg -= remaining;
+      const newRemainingKg = display.remainingKg - remaining;
       remaining = 0;
-      // Update in DB
-      await updateDisplay(display.id, { remainingKg: display.remainingKg });
+      // Update in DB with sync, then state
+      await updateDisplayWithSync(display.id, { remainingKg: newRemainingKg });
+      display.remainingKg = newRemainingKg;
     } else {
       remaining -= display.remainingKg;
+      // Update in DB with sync, then state
+      await updateDisplayWithSync(display.id, { remainingKg: 0 });
       display.remainingKg = 0;
-      // Update in DB
-      await updateDisplay(display.id, { remainingKg: 0 });
     }
   }
 
-  // Remove empty displays from state and DB
-  const emptyDisplays = state.display.filter(d => d.remainingKg <= 0);
-  for (const empty of emptyDisplays) {
-    await deleteDisplay(empty.id);
+  // Remove empty Feed displays from DB first, then state
+  // Only remove if remainingKg is 0 AND it's a Feed product (has originalKg but no originalPieces)
+  const emptyFeedDisplays = state.display.filter(d => d.remainingKg <= 0 && d.originalKg && !d.originalPieces);
+  for (const empty of emptyFeedDisplays) {
+    await deleteDisplayWithSync(empty.id);
   }
-  state.display = state.display.filter(d => d.remainingKg > 0);
+  state.display = state.display.filter(d => !(d.remainingKg <= 0 && d.originalKg && !d.originalPieces));
 
   renderDisplay();
   return remaining === 0; // Returns true if successfully deducted all
+}
+
+// Deduct pieces from display (used by POS for non-feed products)
+async function deductPiecesFromDisplay(productId, pieceAmount) {
+  console.log(`[POS] Deducting ${pieceAmount} pieces from product ${productId}`);
+  let remaining = pieceAmount;
+
+  // Sort displays by date (oldest first) to use FIFO
+  const productDisplays = state.display
+    .filter(d => d.productId === productId)
+    .sort((a, b) => new Date(a.displayDate) - new Date(b.displayDate));
+
+  console.log(`[POS] Found ${productDisplays.length} display entries for product`);
+
+  for (const display of productDisplays) {
+    if (remaining <= 0) break;
+
+    // Handle both new format (remainingPieces) and old format (remainingKg used for pieces)
+    const currentPieces = display.remainingPieces !== undefined ? display.remainingPieces : (display.remainingKg || 0);
+    console.log(`[POS] Display ${display.id}: current pieces = ${currentPieces}, remaining to deduct = ${remaining}`);
+
+    if (currentPieces >= remaining) {
+      const newRemainingPieces = currentPieces - remaining;
+      remaining = 0;
+      console.log(`[POS] Deducting ${pieceAmount} pieces, new remaining = ${newRemainingPieces}`);
+      // Update in DB with sync, then state
+      await updateDisplayWithSync(display.id, { remainingPieces: newRemainingPieces });
+      display.remainingPieces = newRemainingPieces;
+    } else {
+      remaining -= currentPieces;
+      console.log(`[POS] Not enough in this display, taking all ${currentPieces}, still need ${remaining}`);
+      // Update in DB with sync, then state
+      await updateDisplayWithSync(display.id, { remainingPieces: 0 });
+      display.remainingPieces = 0;
+    }
+  }
+
+  // Remove empty non-feed displays from DB first, then state
+  // Check for displays where pieces are depleted (either remainingPieces=0 or old format with remainingKg=0 for non-feed)
+  const isEmptyNonFeedDisplay = (d) => {
+    const product = state.products.find(p => p.id === d.productId);
+    if (!product || product.category === "Feed") return false;
+    const pieces = d.remainingPieces !== undefined ? d.remainingPieces : (d.remainingKg || 0);
+    return pieces <= 0;
+  };
+
+  const emptyPieceDisplays = state.display.filter(isEmptyNonFeedDisplay);
+  for (const empty of emptyPieceDisplays) {
+    await deleteDisplayWithSync(empty.id);
+  }
+  state.display = state.display.filter(d => !isEmptyNonFeedDisplay(d));
+
+  renderDisplay();
+  return remaining === 0; // Returns true if successfully deducted all
+}
+
+// Deduct from inventory (sacks or boxes)
+async function deductFromInventory(productId, amount, type) {
+  const inventory = state.inventory.find(i => i.id === productId);
+  if (!inventory) return false;
+
+  if (type === 'sack') {
+    if (inventory.stockSacks < amount) return false;
+    inventory.stockSacks -= amount;
+    await updateInventoryWithSync(productId, { stockSacks: inventory.stockSacks });
+  } else if (type === 'box') {
+    if (inventory.stockUnits < amount) return false;
+    inventory.stockUnits -= amount;
+    await updateInventoryWithSync(productId, { stockUnits: inventory.stockUnits });
+  }
+
+  // Check for low stock
+  checkLowStock(inventory);
+  renderInventory();
+  return true;
+}
+
+// Check and update low stock status
+function checkLowStock(inventory) {
+  const threshold = inventory.lowStockThreshold || 10;
+  const stock = inventory.category === 'Feed' ? inventory.stockSacks : inventory.stockUnits;
+  inventory.lowStock = stock <= threshold;
 }
 
 // ============================================
@@ -2215,8 +3048,9 @@ function renderProductsTable(filter = "all") {
 
   tbody.innerHTML = filteredProducts.map(product => {
     const hasWholesale = product.wholesalePrice && product.wholesaleMin;
+    const wholesaleUnit = product.category === "Feed" ? 'sacks' : 'boxes';
     const wholesaleInfo = hasWholesale
-      ? `<span class="wholesale-info">Wholesale: ₱${product.wholesalePrice}${product.category === "Feed" ? '/sack' : '/pc'} (min ${product.wholesaleMin})</span>`
+      ? `<span class="wholesale-info">Wholesale: ₱${product.wholesalePrice}${product.category === "Feed" ? '/sack' : '/box'} (min ${product.wholesaleMin} ${wholesaleUnit})</span>`
       : '';
     const costInfo = product.costPrice
       ? `<span class="cost-info">Cost: ₱${product.costPrice}</span>`
@@ -2227,12 +3061,12 @@ function renderProductsTable(filter = "all") {
       <td>${product.id}</td>
       <td class="product-name-cell">
         ${product.image
-          ? `<img src="${product.image}" alt="${product.name}" class="table-product-image">`
+          ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" class="table-product-image">`
           : '<div class="table-product-no-image">No img</div>'}
-        <span>${product.name}</span>
+        <span>${escapeHtml(product.name)}</span>
       </td>
-      <td>${product.brand || '-'}</td>
-      <td>${product.category}</td>
+      <td>${escapeHtml(product.brand || '-')}</td>
+      <td>${escapeHtml(product.category)}</td>
       <td class="pricing-cell">
         <div class="retail-price">
           ${product.category === "Feed"
@@ -2251,9 +3085,6 @@ function renderProductsTable(filter = "all") {
     </tr>
   `}).join("");
 }
-
-// Current product image data (base64)
-let currentProductImage = null;
 
 // Handle product image upload
 function handleProductImageUpload(event) {
@@ -2403,10 +3234,22 @@ function editProduct(productId) {
 
 async function deleteProduct(productId) {
   if (confirm("Are you sure you want to delete this product?")) {
+    // Remove from local state
     state.products = state.products.filter(p => p.id !== productId);
-    await deleteProductFromDB(productId);
+    state.inventory = state.inventory.filter(i => i.id !== productId);
+    state.display = state.display.filter(d => d.productId !== productId);
+
+    // Use sync-aware delete (handles Supabase sync)
+    await deleteProductWithSync(productId);
+
+    // Also delete related inventory and display from local DB
+    await db.inventory.delete(productId);
+    await db.display.where('productId').equals(productId).delete();
+
     renderProductsTable();
     renderProducts();
+    renderInventory();
+    renderDisplay();
     showToast("Product deleted");
   }
 }
@@ -2497,8 +3340,8 @@ async function saveProduct() {
         delete product.pricePerSack;
         delete product.kgPerSack;
       }
-      // Persist to DB
-      await updateProduct(state.editingProductId, product);
+      // Persist to DB with sync
+      await updateProductWithSync(state.editingProductId, product);
     }
     showToast("Product updated");
   } else {
@@ -2527,13 +3370,34 @@ async function saveProduct() {
       newProduct.pricePerBox = piecesPerBox > 1 ? (parseFloat(document.getElementById("edit-price-per-box").value) || 0) : 0;
     }
 
+    // Add sync metadata
+    newProduct.syncStatus = 'pending';
+    newProduct.lastModified = new Date().toISOString();
+
     state.products.push(newProduct);
-    await addProduct(newProduct);
+    // Use sync-aware function (also creates inventory)
+    await addProductWithSync(newProduct);
+
+    // Update local state with inventory
+    const newInventory = {
+      id: newId,
+      name: name,
+      category: category,
+      lowStock: false,
+      stockSacks: 0,
+      stockKg: 0,
+      stockUnits: 0,
+      syncStatus: 'pending',
+      lastModified: new Date().toISOString()
+    };
+    state.inventory.push(newInventory);
+
     showToast("Product added");
   }
 
   renderProductsTable();
   renderProducts();
+  renderInventory(); // Also refresh inventory view
   closeEditProductModal();
 }
 
@@ -2551,6 +3415,50 @@ function updateStoreName() {
   state.storeName = newName;
   localStorage.setItem("storeName", newName);
   document.getElementById("store-name-display").textContent = newName;
+}
+
+// Reset Application - Clear all data
+function confirmResetApp() {
+  // First confirmation
+  if (!confirm("Are you sure you want to reset the application?\n\nThis will delete:\n- All products\n- All inventory\n- All transactions\n- All display items\n- All user accounts\n\nThis action CANNOT be undone!")) {
+    return;
+  }
+
+  // Second confirmation for safety
+  const confirmText = prompt("To confirm, type 'RESET' (all caps):");
+  if (confirmText !== "RESET") {
+    showToast("Reset cancelled");
+    return;
+  }
+
+  // Perform reset
+  resetApp();
+}
+
+async function resetApp() {
+  showLoading("Resetting application...");
+
+  try {
+    // Clear localStorage
+    localStorage.removeItem('flyhigh_db_initialized');
+    localStorage.removeItem('flyhigh_current_user');
+    localStorage.removeItem('storeName');
+    localStorage.removeItem('darkMode');
+
+    // Delete the entire Dexie database
+    await db.delete();
+
+    showToast("Application reset successfully!");
+
+    // Reload the page after a short delay
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  } catch (error) {
+    console.error("Error resetting app:", error);
+    hideLoading();
+    showToast("Error resetting application. Please try again.");
+  }
 }
 
 // ============================================
@@ -2748,8 +3656,8 @@ function renderStockAlerts() {
     <div class="stock-alert-item ${alert.urgency}">
       <div class="alert-product">
         <div class="alert-info">
-          <span class="alert-name">${alert.name}</span>
-          <span class="alert-stock">${alert.stockUnits ? alert.stockUnits + ' units' : alert.stockSacks + ' sacks'} remaining</span>
+          <span class="alert-name">${escapeHtml(alert.name)}</span>
+          <span class="alert-stock">${alert.stockUnits !== undefined ? alert.stockUnits + ' boxes' : alert.stockSacks + ' sacks'} remaining</span>
         </div>
       </div>
       <div class="alert-forecast">

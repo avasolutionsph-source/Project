@@ -1,6 +1,7 @@
 /* ============================================
    FlyHighManarang - Dexie Database Setup
    Persistent local storage using IndexedDB
+   With Supabase sync support
    ============================================ */
 
 // Initialize Dexie Database
@@ -23,6 +24,18 @@ db.version(2).stores({
   transactions: 'id, date, paymentMethod',
   settings: 'key',
   users: '++id, username'
+});
+
+// Version 3: Add sync metadata for Supabase integration
+db.version(3).stores({
+  products: '++id, name, brand, category, supabaseId, syncStatus, lastModified',
+  inventory: 'id, name, category, lowStock, supabaseId, syncStatus, lastModified',
+  display: '++id, productId, openedDate, supabaseId, syncStatus, lastModified',
+  transactions: 'id, date, paymentMethod, supabaseId, syncStatus, lastModified',
+  settings: 'key, supabaseId',
+  users: '++id, username, supabaseId',
+  syncQueue: '++id, tableName, operation, recordId, createdAt, attempts',
+  syncMeta: 'key'
 });
 
 // Default data flag
@@ -117,6 +130,10 @@ async function getInventoryById(id) {
   return await db.inventory.get(id);
 }
 
+async function addInventory(inventoryItem) {
+  return await db.inventory.put(inventoryItem);
+}
+
 async function updateInventory(id, changes) {
   return await db.inventory.update(id, changes);
 }
@@ -185,6 +202,119 @@ async function deleteUser(id) {
 async function hasAnyUsers() {
   const count = await db.users.count();
   return count > 0;
+}
+
+// ============================================
+// Sync Queue Functions (for Supabase sync)
+// ============================================
+
+// Add item to sync queue
+async function addToSyncQueue(tableName, operation, recordId, data) {
+  return await db.syncQueue.add({
+    tableName,
+    operation,
+    recordId,
+    data: JSON.stringify(data),
+    createdAt: new Date().toISOString(),
+    attempts: 0
+  });
+}
+
+// Get all pending sync items
+async function getPendingSyncItems() {
+  return await db.syncQueue.toArray();
+}
+
+// Remove item from sync queue
+async function removeSyncQueueItem(id) {
+  return await db.syncQueue.delete(id);
+}
+
+// Update sync queue item attempts
+async function updateSyncQueueAttempts(id, attempts, error = null) {
+  return await db.syncQueue.update(id, {
+    attempts,
+    lastError: error
+  });
+}
+
+// Clear sync queue
+async function clearSyncQueue() {
+  return await db.syncQueue.clear();
+}
+
+// ============================================
+// Sync Metadata Functions
+// ============================================
+
+// Get sync metadata
+async function getSyncMeta(key) {
+  const meta = await db.syncMeta.get(key);
+  return meta ? meta.value : null;
+}
+
+// Set sync metadata
+async function setSyncMeta(key, value) {
+  return await db.syncMeta.put({ key, value });
+}
+
+// Get last sync time
+async function getLastSyncTime() {
+  return await getSyncMeta('lastSyncTime');
+}
+
+// Set last sync time
+async function setLastSyncTime(time) {
+  return await setSyncMeta('lastSyncTime', time);
+}
+
+// Get store ID from local meta
+async function getLocalStoreId() {
+  return await getSyncMeta('storeId');
+}
+
+// Set store ID in local meta
+async function setLocalStoreId(storeId) {
+  return await setSyncMeta('storeId', storeId);
+}
+
+// ============================================
+// Sync Status Helpers
+// ============================================
+
+// Mark record as pending sync
+async function markAsPending(tableName, id) {
+  return await db[tableName].update(id, {
+    syncStatus: 'pending',
+    lastModified: new Date().toISOString()
+  });
+}
+
+// Mark record as synced
+async function markAsSynced(tableName, id, supabaseId) {
+  return await db[tableName].update(id, {
+    syncStatus: 'synced',
+    supabaseId: supabaseId,
+    lastModified: new Date().toISOString()
+  });
+}
+
+// Mark record as conflict
+async function markAsConflict(tableName, id) {
+  return await db[tableName].update(id, {
+    syncStatus: 'conflict',
+    lastModified: new Date().toISOString()
+  });
+}
+
+// Get all pending records for a table
+async function getPendingRecords(tableName) {
+  return await db[tableName].where('syncStatus').equals('pending').toArray();
+}
+
+// Get all conflict records for a table
+async function getConflictRecords(tableName) {
+  return await db[tableName].where('syncStatus').equals('conflict').toArray();
 }
 
 console.log('Dexie database module loaded.');

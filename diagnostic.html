@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlyHighManarang - Diagnostic Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #4CAF50; margin-bottom: 20px; }
+    h2 { color: #64b5f6; margin: 20px 0 10px; font-size: 1.1rem; }
+    .section { background: #16213e; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    .check { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #333; }
+    .check:last-child { border-bottom: none; }
+    .status { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .pass { background: #4CAF50; color: white; }
+    .fail { background: #f44336; color: white; }
+    .warn { background: #ff9800; color: white; }
+    .info { background: #2196F3; color: white; }
+    .details { font-size: 0.85rem; color: #aaa; margin-left: 34px; }
+    .error-log { background: #2d1b1b; border: 1px solid #f44336; border-radius: 4px; padding: 10px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+    .data-preview { background: #1a2744; border-radius: 4px; padding: 10px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; max-height: 300px; overflow-y: auto; }
+    button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+    button:hover { background: #45a049; }
+    .btn-danger { background: #f44336; }
+    .btn-danger:hover { background: #d32f2f; }
+    .btn-warn { background: #ff9800; }
+    .summary { font-size: 1.2rem; padding: 15px; background: #0f3460; border-radius: 8px; margin-bottom: 20px; }
+    .copy-btn { background: #666; padding: 5px 10px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <h1>FlyHighManarang Diagnostic Tool</h1>
+
+  <div class="summary" id="summary">Running diagnostics...</div>
+
+  <div class="section">
+    <h2>1. Required Libraries</h2>
+    <div id="lib-checks"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. Database (Dexie/IndexedDB)</h2>
+    <div id="db-checks"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. Supabase Connection</h2>
+    <div id="supabase-checks"></div>
+  </div>
+
+  <div class="section">
+    <h2>4. Required Functions</h2>
+    <div id="function-checks"></div>
+  </div>
+
+  <div class="section">
+    <h2>5. Data Integrity</h2>
+    <div id="data-checks"></div>
+  </div>
+
+  <div class="section">
+    <h2>6. Local Data Preview</h2>
+    <div id="data-preview"></div>
+  </div>
+
+  <div class="section">
+    <h2>7. Console Errors</h2>
+    <div id="error-log"></div>
+  </div>
+
+  <div class="section">
+    <h2>8. Actions</h2>
+    <button onclick="copyReport()">Copy Full Report</button>
+    <button onclick="location.reload()">Re-run Diagnostics</button>
+    <button class="btn-warn" onclick="clearSyncQueue()">Clear Sync Queue</button>
+    <button class="btn-danger" onclick="if(confirm('This will delete ALL local data. Are you sure?')) resetAll()">Reset All Data</button>
+  </div>
+
+  <!-- Load dependencies -->
+  <script src="https://unpkg.com/dexie@latest/dist/dexie.min.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="db.js"></script>
+  <script src="supabase-config.js"></script>
+
+  <script>
+    // Capture console errors
+    const capturedErrors = [];
+    const originalError = console.error;
+    console.error = function(...args) {
+      capturedErrors.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+      originalError.apply(console, args);
+    };
+
+    let totalChecks = 0;
+    let passedChecks = 0;
+    let failedChecks = 0;
+    let warnings = 0;
+
+    function addCheck(containerId, status, message, details = '') {
+      totalChecks++;
+      if (status === 'pass') passedChecks++;
+      else if (status === 'fail') failedChecks++;
+      else if (status === 'warn') warnings++;
+
+      const icon = status === 'pass' ? '✓' : status === 'fail' ? '✗' : status === 'warn' ? '!' : 'i';
+      const container = document.getElementById(containerId);
+      container.innerHTML += `
+        <div class="check">
+          <span class="status ${status}">${icon}</span>
+          <span>${message}</span>
+        </div>
+        ${details ? `<div class="details">${details}</div>` : ''}
+      `;
+    }
+
+    async function runDiagnostics() {
+      // 1. Check Libraries
+      addCheck('lib-checks', typeof Dexie !== 'undefined' ? 'pass' : 'fail',
+        'Dexie.js loaded', typeof Dexie !== 'undefined' ? `Version: ${Dexie.version}` : 'Library not found');
+
+      addCheck('lib-checks', typeof window.supabase !== 'undefined' ? 'pass' : 'fail',
+        'Supabase JS loaded', typeof window.supabase !== 'undefined' ? 'createClient available' : 'Library not found');
+
+      // 2. Check Database
+      try {
+        const dbExists = typeof db !== 'undefined';
+        addCheck('db-checks', dbExists ? 'pass' : 'fail', 'Dexie database instance', dbExists ? 'db object exists' : 'db not defined');
+
+        if (dbExists) {
+          const tables = db.tables.map(t => t.name);
+          addCheck('db-checks', tables.length > 0 ? 'pass' : 'fail',
+            `Database tables (${tables.length})`, tables.join(', '));
+
+          // Check each required table
+          const requiredTables = ['products', 'inventory', 'display', 'transactions', 'settings', 'users', 'syncQueue', 'syncMeta'];
+          for (const table of requiredTables) {
+            const exists = tables.includes(table);
+            addCheck('db-checks', exists ? 'pass' : 'fail', `Table: ${table}`);
+          }
+
+          // Count records
+          const productCount = await db.products.count();
+          const inventoryCount = await db.inventory.count();
+          const displayCount = await db.display.count();
+          const transactionCount = await db.transactions.count();
+          const syncQueueCount = await db.syncQueue.count();
+
+          addCheck('db-checks', 'info', `Products: ${productCount}, Inventory: ${inventoryCount}, Display: ${displayCount}, Transactions: ${transactionCount}`);
+          addCheck('db-checks', syncQueueCount > 10 ? 'warn' : 'info', `Sync Queue: ${syncQueueCount} pending items`, syncQueueCount > 10 ? 'Consider clearing if stuck' : '');
+        }
+      } catch (e) {
+        addCheck('db-checks', 'fail', 'Database error', e.message);
+      }
+
+      // 3. Check Supabase
+      try {
+        addCheck('supabase-checks', typeof SUPABASE_URL !== 'undefined' ? 'pass' : 'fail',
+          'Supabase URL configured', typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'Not set');
+
+        addCheck('supabase-checks', typeof SUPABASE_ANON_KEY !== 'undefined' ? 'pass' : 'fail',
+          'Supabase Anon Key configured', typeof SUPABASE_ANON_KEY !== 'undefined' ? 'Key present (hidden)' : 'Not set');
+
+        // Try to initialize and check session
+        if (typeof initSupabase === 'function') {
+          initSupabase();
+          addCheck('supabase-checks', 'pass', 'initSupabase() function exists');
+
+          const client = getSupabase();
+          addCheck('supabase-checks', client ? 'pass' : 'warn', 'Supabase client initialized', client ? 'Client ready' : 'Client not initialized');
+
+          if (client) {
+            try {
+              const { data: { session } } = await client.auth.getSession();
+              addCheck('supabase-checks', session ? 'pass' : 'warn',
+                'Auth session', session ? `Logged in as: ${session.user.email}` : 'No active session (not logged in)');
+
+              if (session) {
+                // Check store ID
+                const storeId = await getStoreId();
+                addCheck('supabase-checks', storeId ? 'pass' : 'fail',
+                  'Store ID', storeId ? storeId : 'No store linked to user');
+
+                // Test database connection
+                try {
+                  const { data, error } = await client.from('products').select('id').limit(1);
+                  if (error) throw error;
+                  addCheck('supabase-checks', 'pass', 'Database query successful', 'Can read from products table');
+                } catch (e) {
+                  addCheck('supabase-checks', 'fail', 'Database query failed', e.message);
+                }
+              }
+            } catch (e) {
+              addCheck('supabase-checks', 'fail', 'Auth check failed', e.message);
+            }
+          }
+        } else {
+          addCheck('supabase-checks', 'fail', 'initSupabase() function missing');
+        }
+      } catch (e) {
+        addCheck('supabase-checks', 'fail', 'Supabase error', e.message);
+      }
+
+      // 4. Check Required Functions
+      const requiredFunctions = [
+        'getAllProducts', 'addProduct', 'updateProduct', 'deleteProductFromDB',
+        'getAllInventory', 'addInventory', 'updateInventory', 'getInventoryById',
+        'getAllDisplay', 'addDisplay', 'updateDisplay', 'deleteDisplay',
+        'getAllTransactions', 'addTransaction',
+        'getSetting', 'setSetting',
+        'addToSyncQueue', 'getPendingSyncItems', 'removeSyncQueueItem',
+        'supabaseSignIn', 'supabaseSignUp', 'supabaseSignOut', 'supabaseGetSession',
+        'getStoreId', 'fetchFromSupabase', 'upsertToSupabase'
+      ];
+
+      const missingFunctions = [];
+      for (const fn of requiredFunctions) {
+        const exists = typeof window[fn] === 'function';
+        if (!exists) missingFunctions.push(fn);
+      }
+
+      addCheck('function-checks', missingFunctions.length === 0 ? 'pass' : 'fail',
+        `Required functions (${requiredFunctions.length - missingFunctions.length}/${requiredFunctions.length})`,
+        missingFunctions.length > 0 ? `Missing: ${missingFunctions.join(', ')}` : 'All functions available');
+
+      // 5. Data Integrity Checks
+      try {
+        const products = await getAllProducts();
+        const inventory = await getAllInventory();
+
+        // Check if all products have inventory
+        const productIds = products.map(p => p.id);
+        const inventoryIds = inventory.map(i => i.id);
+        const productsWithoutInventory = productIds.filter(id => !inventoryIds.includes(id));
+
+        addCheck('data-checks', productsWithoutInventory.length === 0 ? 'pass' : 'warn',
+          'Products with inventory records',
+          productsWithoutInventory.length > 0 ? `${productsWithoutInventory.length} products missing inventory: IDs ${productsWithoutInventory.join(', ')}` : 'All products have inventory');
+
+        // Check for orphan inventory (inventory without products)
+        const orphanInventory = inventoryIds.filter(id => !productIds.includes(id));
+        addCheck('data-checks', orphanInventory.length === 0 ? 'pass' : 'warn',
+          'Orphan inventory records',
+          orphanInventory.length > 0 ? `${orphanInventory.length} inventory items without products` : 'No orphan inventory');
+
+        // Check sync status
+        const pendingProducts = products.filter(p => p.syncStatus === 'pending').length;
+        const conflictProducts = products.filter(p => p.syncStatus === 'conflict').length;
+        addCheck('data-checks', conflictProducts === 0 ? 'pass' : 'warn',
+          `Product sync status: ${pendingProducts} pending, ${conflictProducts} conflicts`);
+
+      } catch (e) {
+        addCheck('data-checks', 'fail', 'Data integrity check failed', e.message);
+      }
+
+      // 6. Data Preview
+      try {
+        const products = await getAllProducts();
+        const inventory = await getAllInventory();
+        const display = await getAllDisplay();
+        const syncQueue = await getPendingSyncItems();
+
+        document.getElementById('data-preview').innerHTML = `
+          <h3>Products (${products.length})</h3>
+          <div class="data-preview">${JSON.stringify(products.slice(0, 5), null, 2)}${products.length > 5 ? '\n... and ' + (products.length - 5) + ' more' : ''}</div>
+
+          <h3>Inventory (${inventory.length})</h3>
+          <div class="data-preview">${JSON.stringify(inventory.slice(0, 5), null, 2)}${inventory.length > 5 ? '\n... and ' + (inventory.length - 5) + ' more' : ''}</div>
+
+          <h3>Display (${display.length})</h3>
+          <div class="data-preview">${JSON.stringify(display.slice(0, 5), null, 2)}${display.length > 5 ? '\n... and ' + (display.length - 5) + ' more' : ''}</div>
+
+          <h3>Sync Queue (${syncQueue.length})</h3>
+          <div class="data-preview">${JSON.stringify(syncQueue.slice(0, 10), null, 2)}${syncQueue.length > 10 ? '\n... and ' + (syncQueue.length - 10) + ' more' : ''}</div>
+        `;
+      } catch (e) {
+        document.getElementById('data-preview').innerHTML = `<div class="error-log">Error loading data: ${e.message}</div>`;
+      }
+
+      // 7. Show captured errors
+      setTimeout(() => {
+        const errorContainer = document.getElementById('error-log');
+        if (capturedErrors.length > 0) {
+          errorContainer.innerHTML = `<div class="error-log">${capturedErrors.join('\n\n')}</div>`;
+        } else {
+          errorContainer.innerHTML = '<div class="check"><span class="status pass">✓</span><span>No console errors captured</span></div>';
+        }
+      }, 1000);
+
+      // Update summary
+      document.getElementById('summary').innerHTML = `
+        <strong>Diagnostic Summary:</strong>
+        <span style="color: #4CAF50">${passedChecks} passed</span>,
+        <span style="color: #f44336">${failedChecks} failed</span>,
+        <span style="color: #ff9800">${warnings} warnings</span>
+        ${failedChecks > 0 ? '<br><br><strong style="color: #f44336">Issues found! Check the details below.</strong>' : '<br><br><strong style="color: #4CAF50">Looking good!</strong>'}
+      `;
+    }
+
+    function copyReport() {
+      const report = document.body.innerText;
+      navigator.clipboard.writeText(report).then(() => alert('Report copied to clipboard!'));
+    }
+
+    async function clearSyncQueue() {
+      if (confirm('Clear all pending sync items?')) {
+        await db.syncQueue.clear();
+        alert('Sync queue cleared!');
+        location.reload();
+      }
+    }
+
+    async function resetAll() {
+      localStorage.removeItem('flyhigh_db_initialized');
+      await db.delete();
+      alert('All data cleared! Reloading...');
+      location.reload();
+    }
+
+    // Run diagnostics after a short delay to let scripts load
+    setTimeout(runDiagnostics, 500);
+  </script>
+</body>
+</html>

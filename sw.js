@@ -3,16 +3,19 @@
    Enables offline functionality
    ============================================ */
 
-const CACHE_NAME = 'flyhighmanarang-v2';
+const CACHE_NAME = 'flyhighmanarang-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './db.js',
+  './supabase-config.js',
+  './sync-manager.js',
   './manifest.json',
   './icons/icon.svg',
-  'https://unpkg.com/dexie@latest/dist/dexie.js'
+  'https://unpkg.com/dexie@latest/dist/dexie.js',
+  'https://unpkg.com/@supabase/supabase-js@2'
 ];
 
 // Install event - cache assets
@@ -126,12 +129,48 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Background sync (for future offline transaction sync)
+// Background sync for offline data sync
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-transactions') {
-    console.log('[ServiceWorker] Syncing transactions...');
-    // Future: Sync offline transactions when back online
+  console.log('[ServiceWorker] Sync event:', event.tag);
+
+  if (event.tag === 'sync-data' || event.tag === 'sync-transactions') {
+    event.waitUntil(
+      notifyClientsToSync()
+    );
   }
 });
 
-console.log('[ServiceWorker] Loaded');
+// Notify all clients to sync their data
+async function notifyClientsToSync() {
+  const allClients = await clients.matchAll({ includeUncontrolled: true });
+
+  for (const client of allClients) {
+    client.postMessage({
+      type: 'SYNC_REQUIRED',
+      timestamp: Date.now()
+    });
+  }
+
+  console.log('[ServiceWorker] Notified', allClients.length, 'clients to sync');
+}
+
+// Handle messages from the main app
+self.addEventListener('message', (event) => {
+  console.log('[ServiceWorker] Message received:', event.data);
+
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data && event.data.type === 'SYNC_COMPLETE') {
+    console.log('[ServiceWorker] Sync completed successfully');
+  }
+});
+
+// Listen for online event and trigger sync
+self.addEventListener('online', () => {
+  console.log('[ServiceWorker] Online detected, triggering sync');
+  notifyClientsToSync();
+});
+
+console.log('[ServiceWorker] Loaded with Supabase sync support');
