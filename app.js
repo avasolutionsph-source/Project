@@ -767,23 +767,25 @@ function getProfitDataFromTransactions() {
     let txnCost = 0;
     if (txn.items && Array.isArray(txn.items)) {
       txn.items.forEach(item => {
-        const costPrice = productCostMap[item.productId] || 0;
+        const product = products.find(p => p.id === item.productId);
+        const costPrice = productCostMap[item.productId] || 0; // Cost per sack for feeds, cost per piece for non-feeds
+        const kgPerSack = product?.kgPerSack || 25;
+        const piecesPerBox = product?.piecesPerBox || 1;
+
         // Calculate cost based on quantity sold
+        // For feeds: costPrice is cost PER SACK, so divide by kgPerSack to get cost per kg
         if (item.kgAmount > 0) {
-          // Feed sold by kg - costPrice is per kg
-          txnCost += costPrice * item.kgAmount;
+          // Feed sold by kg - convert costPrice (per sack) to per kg
+          const costPerKg = costPrice / kgPerSack;
+          txnCost += costPerKg * item.kgAmount;
         } else if (item.sackAmount > 0) {
-          // Feed sold by sack - costPrice is per sack (assume same as selling ratio)
-          const product = products.find(p => p.id === item.productId);
-          const kgPerSack = product?.kgPerSack || 25;
-          txnCost += costPrice * kgPerSack * item.sackAmount;
+          // Feed sold by sack - costPrice is already per sack
+          txnCost += costPrice * item.sackAmount;
         } else if (item.pieceAmount > 0) {
-          // Non-feed sold by piece
+          // Non-feed sold by piece - costPrice is per piece
           txnCost += costPrice * item.pieceAmount;
         } else if (item.boxAmount > 0) {
-          // Non-feed sold by box
-          const product = products.find(p => p.id === item.productId);
-          const piecesPerBox = product?.piecesPerBox || 1;
+          // Non-feed sold by box - costPrice is per piece, multiply by pieces per box
           txnCost += costPrice * piecesPerBox * item.boxAmount;
         } else {
           // Fallback: use quantity
@@ -951,20 +953,29 @@ function getFinancialReportData() {
         const product = productMap[item.productId];
         if (!product) return;
 
-        const costPrice = product.costPrice;
+        const costPrice = product.costPrice; // Cost per sack for feeds, cost per piece for non-feeds
+        const kgPerSack = product.kgPerSack || 25;
+        const piecesPerBox = product.piecesPerBox || 1;
         let itemCost = 0;
         let itemRevenue = item.price || 0;
 
         // Calculate cost based on sale type
+        // For feeds: costPrice is cost PER SACK, so divide by kgPerSack to get cost per kg
         if (item.kgAmount > 0) {
-          itemCost = costPrice * item.kgAmount;
+          // Feed sold by kg - convert costPrice (per sack) to per kg
+          const costPerKg = costPrice / kgPerSack;
+          itemCost = costPerKg * item.kgAmount;
         } else if (item.sackAmount > 0) {
-          itemCost = costPrice * product.kgPerSack * item.sackAmount;
+          // Feed sold by sack - costPrice is already per sack
+          itemCost = costPrice * item.sackAmount;
         } else if (item.pieceAmount > 0) {
+          // Non-feed sold by piece - costPrice is per piece
           itemCost = costPrice * item.pieceAmount;
         } else if (item.boxAmount > 0) {
-          itemCost = costPrice * product.piecesPerBox * item.boxAmount;
+          // Non-feed sold by box - costPrice is per piece, multiply by pieces per box
+          itemCost = costPrice * piecesPerBox * item.boxAmount;
         } else {
+          // Fallback: use quantity
           itemCost = costPrice * (item.quantity || 1);
         }
 
@@ -1097,30 +1108,39 @@ function getProfitByProduct() {
         const product = productMap[item.productId];
         if (!product) return;
 
-        const costPrice = product.costPrice;
+        const costPrice = product.costPrice; // Cost per sack for feeds, cost per piece for non-feeds
+        const kgPerSack = product.kgPerSack || 25;
+        const piecesPerBox = product.piecesPerBox || 1;
         let itemCost = 0;
         let itemRevenue = item.price || 0;
         let quantitySold = 0;
         let unitType = '';
 
         // Calculate cost and quantity based on sale type
+        // For feeds: costPrice is cost PER SACK, so divide by kgPerSack to get cost per kg
         if (item.kgAmount > 0) {
-          itemCost = costPrice * item.kgAmount;
+          // Feed sold by kg - convert costPrice (per sack) to per kg
+          const costPerKg = costPrice / kgPerSack;
+          itemCost = costPerKg * item.kgAmount;
           quantitySold = item.kgAmount;
           unitType = 'kg';
         } else if (item.sackAmount > 0) {
-          itemCost = costPrice * product.kgPerSack * item.sackAmount;
+          // Feed sold by sack - costPrice is already per sack
+          itemCost = costPrice * item.sackAmount;
           quantitySold = item.sackAmount;
           unitType = 'sack(s)';
         } else if (item.pieceAmount > 0) {
+          // Non-feed sold by piece - costPrice is per piece
           itemCost = costPrice * item.pieceAmount;
           quantitySold = item.pieceAmount;
           unitType = 'pc(s)';
         } else if (item.boxAmount > 0) {
-          itemCost = costPrice * product.piecesPerBox * item.boxAmount;
+          // Non-feed sold by box - costPrice is per piece, multiply by pieces per box
+          itemCost = costPrice * piecesPerBox * item.boxAmount;
           quantitySold = item.boxAmount;
           unitType = 'box(es)';
         } else {
+          // Fallback: use quantity
           itemCost = costPrice * (item.quantity || 1);
           quantitySold = item.quantity || 1;
           unitType = 'unit(s)';
