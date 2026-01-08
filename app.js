@@ -783,11 +783,12 @@ function getProfitDataFromTransactions() {
           // Feed sold by sack - costPrice is already per sack
           txnCost += costPrice * item.sackAmount;
         } else if (item.pieceAmount > 0) {
-          // Non-feed sold by piece - costPrice is per piece
-          txnCost += costPrice * item.pieceAmount;
+          // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
+          const costPerPiece = costPrice / piecesPerBox;
+          txnCost += costPerPiece * item.pieceAmount;
         } else if (item.boxAmount > 0) {
-          // Non-feed sold by box - costPrice is per piece, multiply by pieces per box
-          txnCost += costPrice * piecesPerBox * item.boxAmount;
+          // Non-feed sold by box - costPrice is per BOX
+          txnCost += costPrice * item.boxAmount;
         } else {
           // Fallback: use quantity
           txnCost += costPrice * (item.quantity || 1);
@@ -970,11 +971,12 @@ function getFinancialReportData() {
           // Feed sold by sack - costPrice is already per sack
           itemCost = costPrice * item.sackAmount;
         } else if (item.pieceAmount > 0) {
-          // Non-feed sold by piece - costPrice is per piece
-          itemCost = costPrice * item.pieceAmount;
+          // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
+          const costPerPiece = costPrice / piecesPerBox;
+          itemCost = costPerPiece * item.pieceAmount;
         } else if (item.boxAmount > 0) {
-          // Non-feed sold by box - costPrice is per piece, multiply by pieces per box
-          itemCost = costPrice * piecesPerBox * item.boxAmount;
+          // Non-feed sold by box - costPrice is per BOX
+          itemCost = costPrice * item.boxAmount;
         } else {
           // Fallback: use quantity
           itemCost = costPrice * (item.quantity || 1);
@@ -1195,11 +1197,14 @@ function getTopMovingProductsData() {
           quantity = item.sackAmount;
           unitType = 'sack';
         } else if (item.pieceAmount > 0) {
-          itemCost = costPrice * item.pieceAmount;
+          // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
+          const costPerPiece = costPrice / piecesPerBox;
+          itemCost = costPerPiece * item.pieceAmount;
           quantity = item.pieceAmount;
           unitType = 'pc';
         } else if (item.boxAmount > 0) {
-          itemCost = costPrice * piecesPerBox * item.boxAmount;
+          // Non-feed sold by box - costPrice is per BOX
+          itemCost = costPrice * item.boxAmount;
           quantity = item.boxAmount;
           unitType = 'box';
         } else {
@@ -1389,13 +1394,14 @@ function getProfitByProduct() {
           quantitySold = item.sackAmount;
           unitType = 'sack(s)';
         } else if (item.pieceAmount > 0) {
-          // Non-feed sold by piece - costPrice is per piece
-          itemCost = costPrice * item.pieceAmount;
+          // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
+          const costPerPiece = costPrice / piecesPerBox;
+          itemCost = costPerPiece * item.pieceAmount;
           quantitySold = item.pieceAmount;
           unitType = 'pc(s)';
         } else if (item.boxAmount > 0) {
-          // Non-feed sold by box - costPrice is per piece, multiply by pieces per box
-          itemCost = costPrice * piecesPerBox * item.boxAmount;
+          // Non-feed sold by box - costPrice is per BOX
+          itemCost = costPrice * item.boxAmount;
           quantitySold = item.boxAmount;
           unitType = 'box(es)';
         } else {
