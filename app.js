@@ -779,16 +779,26 @@ function getProfitDataFromTransactions() {
           // Feed sold by kg - convert costPrice (per sack) to per kg
           const costPerKg = costPrice / kgPerSack;
           txnCost += costPerKg * item.kgAmount;
-        } else if (item.sackAmount > 0) {
+        } else if (item.unit && item.unit.toUpperCase().includes('KG')) {
+          // Fallback for old transactions: parse KG from unit string
+          const kgMatch = item.unit.match(/^([\d.]+)\s*KG/i);
+          if (kgMatch) {
+            const kgAmount = parseFloat(kgMatch[1]);
+            const costPerKg = costPrice / kgPerSack;
+            txnCost += costPerKg * kgAmount;
+          } else {
+            txnCost += costPrice * (item.quantity || 1);
+          }
+        } else if (item.sackAmount > 0 || (item.unit && item.unit.toUpperCase().includes('SACK'))) {
           // Feed sold by sack - costPrice is already per sack
-          txnCost += costPrice * item.sackAmount;
+          txnCost += costPrice * (item.sackAmount || item.quantity || 1);
         } else if (item.pieceAmount > 0) {
           // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
           const costPerPiece = costPrice / piecesPerBox;
           txnCost += costPerPiece * item.pieceAmount;
-        } else if (item.boxAmount > 0) {
+        } else if (item.boxAmount > 0 || (item.unit && item.unit.toUpperCase().includes('BOX'))) {
           // Non-feed sold by box - costPrice is per BOX
-          txnCost += costPrice * item.boxAmount;
+          txnCost += costPrice * (item.boxAmount || item.quantity || 1);
         } else {
           // Fallback: use quantity
           txnCost += costPrice * (item.quantity || 1);
@@ -967,16 +977,26 @@ function getFinancialReportData() {
           // Feed sold by kg - convert costPrice (per sack) to per kg
           const costPerKg = costPrice / kgPerSack;
           itemCost = costPerKg * item.kgAmount;
-        } else if (item.sackAmount > 0) {
+        } else if (item.unit && item.unit.toUpperCase().includes('KG')) {
+          // Fallback for old transactions: parse KG from unit string
+          const kgMatch = item.unit.match(/^([\d.]+)\s*KG/i);
+          if (kgMatch) {
+            const kgAmount = parseFloat(kgMatch[1]);
+            const costPerKg = costPrice / kgPerSack;
+            itemCost = costPerKg * kgAmount;
+          } else {
+            itemCost = costPrice * (item.quantity || 1);
+          }
+        } else if (item.sackAmount > 0 || (item.unit && item.unit.toUpperCase().includes('SACK'))) {
           // Feed sold by sack - costPrice is already per sack
-          itemCost = costPrice * item.sackAmount;
+          itemCost = costPrice * (item.sackAmount || item.quantity || 1);
         } else if (item.pieceAmount > 0) {
           // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
           const costPerPiece = costPrice / piecesPerBox;
           itemCost = costPerPiece * item.pieceAmount;
-        } else if (item.boxAmount > 0) {
+        } else if (item.boxAmount > 0 || (item.unit && item.unit.toUpperCase().includes('BOX'))) {
           // Non-feed sold by box - costPrice is per BOX
-          itemCost = costPrice * item.boxAmount;
+          itemCost = costPrice * (item.boxAmount || item.quantity || 1);
         } else {
           // Fallback: use quantity
           itemCost = costPrice * (item.quantity || 1);
@@ -1192,9 +1212,24 @@ function getTopMovingProductsData() {
           itemCost = costPerKg * item.kgAmount;
           quantity = item.kgAmount;
           unitType = 'kg';
-        } else if (item.sackAmount > 0) {
-          itemCost = costPrice * item.sackAmount;
-          quantity = item.sackAmount;
+        } else if (item.unit && item.unit.toUpperCase().includes('KG')) {
+          // Fallback for old transactions: parse KG from unit string like "1.00 KG" or "25.00 KG"
+          const kgMatch = item.unit.match(/^([\d.]+)\s*KG/i);
+          if (kgMatch) {
+            const kgAmount = parseFloat(kgMatch[1]);
+            const costPerKg = costPrice / kgPerSack;
+            itemCost = costPerKg * kgAmount;
+            quantity = kgAmount;
+            unitType = 'kg';
+          } else {
+            itemCost = costPrice * (item.quantity || 1);
+            quantity = item.quantity || 1;
+            unitType = 'kg';
+          }
+        } else if (item.sackAmount > 0 || (item.unit && item.unit.toUpperCase().includes('SACK'))) {
+          const sacks = item.sackAmount || item.quantity || 1;
+          itemCost = costPrice * sacks;
+          quantity = sacks;
           unitType = 'sack';
         } else if (item.pieceAmount > 0) {
           // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
@@ -1202,10 +1237,11 @@ function getTopMovingProductsData() {
           itemCost = costPerPiece * item.pieceAmount;
           quantity = item.pieceAmount;
           unitType = 'pc';
-        } else if (item.boxAmount > 0) {
+        } else if (item.boxAmount > 0 || (item.unit && item.unit.toUpperCase().includes('BOX'))) {
           // Non-feed sold by box - costPrice is per BOX
-          itemCost = costPrice * item.boxAmount;
-          quantity = item.boxAmount;
+          const boxes = item.boxAmount || item.quantity || 1;
+          itemCost = costPrice * boxes;
+          quantity = boxes;
           unitType = 'box';
         } else {
           itemCost = costPrice * (item.quantity || 1);
@@ -1388,10 +1424,25 @@ function getProfitByProduct() {
           itemCost = costPerKg * item.kgAmount;
           quantitySold = item.kgAmount;
           unitType = 'kg';
-        } else if (item.sackAmount > 0) {
+        } else if (item.unit && item.unit.toUpperCase().includes('KG')) {
+          // Fallback for old transactions: parse KG from unit string
+          const kgMatch = item.unit.match(/^([\d.]+)\s*KG/i);
+          if (kgMatch) {
+            const kgAmount = parseFloat(kgMatch[1]);
+            const costPerKg = costPrice / kgPerSack;
+            itemCost = costPerKg * kgAmount;
+            quantitySold = kgAmount;
+            unitType = 'kg';
+          } else {
+            itemCost = costPrice * (item.quantity || 1);
+            quantitySold = item.quantity || 1;
+            unitType = 'kg';
+          }
+        } else if (item.sackAmount > 0 || (item.unit && item.unit.toUpperCase().includes('SACK'))) {
           // Feed sold by sack - costPrice is already per sack
-          itemCost = costPrice * item.sackAmount;
-          quantitySold = item.sackAmount;
+          const sacks = item.sackAmount || item.quantity || 1;
+          itemCost = costPrice * sacks;
+          quantitySold = sacks;
           unitType = 'sack(s)';
         } else if (item.pieceAmount > 0) {
           // Non-feed sold by piece - costPrice is per BOX, divide by piecesPerBox
@@ -1399,10 +1450,11 @@ function getProfitByProduct() {
           itemCost = costPerPiece * item.pieceAmount;
           quantitySold = item.pieceAmount;
           unitType = 'pc(s)';
-        } else if (item.boxAmount > 0) {
+        } else if (item.boxAmount > 0 || (item.unit && item.unit.toUpperCase().includes('BOX'))) {
           // Non-feed sold by box - costPrice is per BOX
-          itemCost = costPrice * item.boxAmount;
-          quantitySold = item.boxAmount;
+          const boxes = item.boxAmount || item.quantity || 1;
+          itemCost = costPrice * boxes;
+          quantitySold = boxes;
           unitType = 'box(es)';
         } else {
           // Fallback: use quantity
