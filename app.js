@@ -2956,8 +2956,8 @@ async function saveInventoryStock() {
   closeEditInventoryModal();
   showToast("Stock updated successfully");
 
-  // Update dashboard low stock count
-  document.getElementById("low-stock-items").textContent = state.inventory.filter(i => i.lowStock).length;
+  // Update dashboard
+  updateDashboardCards();
 }
 
 // ============================================
@@ -3204,6 +3204,7 @@ async function addToDisplay() {
 
   renderDisplay();
   renderInventory();
+  updateDashboardCards(); // Update dashboard
   closeAddDisplayModal();
   showToast(`${product.name} added to display (${displayQuantity} ${quantityLabel})`);
 }
@@ -3224,6 +3225,7 @@ async function removeFromDisplay(displayId) {
   state.display = state.display.filter(d => d.id !== displayId);
 
   renderDisplay();
+  updateDashboardCards(); // Update dashboard
   showToast("Display removed");
 }
 
@@ -3616,6 +3618,7 @@ async function deleteProduct(productId) {
     renderProducts();
     renderInventory();
     renderDisplay();
+    updateDashboardCards(); // Update dashboard
     showToast("Product deleted");
   }
 }
@@ -3764,6 +3767,7 @@ async function saveProduct() {
   renderProductsTable();
   renderProducts();
   renderInventory(); // Also refresh inventory view
+  updateDashboardCards(); // Update dashboard
   closeEditProductModal();
 }
 
