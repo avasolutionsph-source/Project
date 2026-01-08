@@ -1642,6 +1642,9 @@ function updateDashboardAfterSale() {
   // Update financial reports
   updateFinancialReports();
 
+  // Update top moving products
+  updateTopMovingProducts();
+
   // Update recent sales list
   renderRecentSales();
 
