@@ -3229,8 +3229,8 @@ function renderInventory(filter = currentInventoryFilter) {
     const product = state.products.find(p => p.id === item.id);
 
     if (item.category === "Feed") {
-      // Get display info for Feed products
-      const displayCount = state.display.filter(d => d.productId === item.id).length;
+      // Get display info for Feed products (use String() for type-safe comparison)
+      const displayCount = state.display.filter(d => String(d.productId) === String(item.id)).length;
       const displayKg = getDisplayKgForProduct(item.id);
       const totalSacks = item.stockSacks + displayCount; // Total = stored + on display
 
@@ -3266,8 +3266,8 @@ function renderInventory(filter = currentInventoryFilter) {
         </div>
       `;
     } else {
-      // Get display info for Non-feed products
-      const displayCount = state.display.filter(d => d.productId === item.id).length;
+      // Get display info for Non-feed products (use String() for type-safe comparison)
+      const displayCount = state.display.filter(d => String(d.productId) === String(item.id)).length;
       const displayPieces = getDisplayPiecesForProduct(item.id);
       const totalBoxes = item.stockUnits + displayCount; // Total = stored + on display (as boxes)
 
@@ -3461,7 +3461,8 @@ function renderDisplay() {
   }
 
   grid.innerHTML = state.display.map(item => {
-    const product = state.products.find(p => p.id === item.productId);
+    // Use String() for type-safe comparison after Supabase sync
+    const product = state.products.find(p => String(p.id) === String(item.productId));
     const isFeed = item.category === "Feed" || (product && product.category === "Feed");
 
     // Use appropriate fields based on product type
@@ -3536,8 +3537,8 @@ function openAddDisplayModal() {
       const isFeed = p.category === "Feed";
       const availableStock = isFeed ? (inv ? inv.stockSacks : 0) : (inv ? inv.stockUnits : 0);
       const stockUnit = isFeed ? "sacks" : "boxes";
-      // Check how many are already on display
-      const onDisplay = state.display.filter(d => d.productId === p.id).length;
+      // Check how many are already on display (use String() for type-safe comparison)
+      const onDisplay = state.display.filter(d => String(d.productId) === String(p.id)).length;
       const remaining = availableStock - onDisplay;
 
       return `<option value="${p.id}" ${remaining <= 0 ? 'disabled' : ''}>
@@ -3607,8 +3608,8 @@ async function addToDisplay() {
     return;
   }
 
-  // Check if we have available stock (not already on display)
-  const onDisplay = state.display.filter(d => d.productId === productId).length;
+  // Check if we have available stock (not already on display) - use String() for type-safe comparison
+  const onDisplay = state.display.filter(d => String(d.productId) === String(productId)).length;
   if (onDisplay >= availableStock) {
     showToast("All stock is already on display");
     return;
@@ -3690,15 +3691,17 @@ async function removeFromDisplay(displayId) {
 
 // Get total display kg for a product (Feed)
 function getDisplayKgForProduct(productId) {
+  // Use == for loose comparison to handle string/number type mismatch after Supabase sync
   return state.display
-    .filter(d => d.productId === productId)
-    .reduce((total, d) => total + d.remainingKg, 0);
+    .filter(d => String(d.productId) === String(productId))
+    .reduce((total, d) => total + (d.remainingKg || 0), 0);
 }
 
 // Get total display pieces for a product (Non-feed)
 function getDisplayPiecesForProduct(productId) {
+  // Use == for loose comparison to handle string/number type mismatch after Supabase sync
   return state.display
-    .filter(d => d.productId === productId)
+    .filter(d => String(d.productId) === String(productId))
     .reduce((total, d) => {
       // Use remainingPieces if available, else fall back to remainingKg (old format)
       const pieces = d.remainingPieces !== undefined ? d.remainingPieces : (d.remainingKg || 0);
@@ -3711,8 +3714,9 @@ async function deductFromDisplay(productId, kgAmount) {
   let remaining = kgAmount;
 
   // Sort displays by date (oldest first) to use FIFO
+  // Use String() for type-safe comparison after Supabase sync
   const productDisplays = state.display
-    .filter(d => d.productId === productId)
+    .filter(d => String(d.productId) === String(productId))
     .sort((a, b) => new Date(a.displayDate) - new Date(b.displayDate));
 
   for (const display of productDisplays) {
@@ -3750,8 +3754,9 @@ async function deductPiecesFromDisplay(productId, pieceAmount) {
   let remaining = pieceAmount;
 
   // Sort displays by date (oldest first) to use FIFO
+  // Use String() for type-safe comparison after Supabase sync
   const productDisplays = state.display
-    .filter(d => d.productId === productId)
+    .filter(d => String(d.productId) === String(productId))
     .sort((a, b) => new Date(a.displayDate) - new Date(b.displayDate));
 
   console.log(`[POS] Found ${productDisplays.length} display entries for product`);
