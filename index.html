@@ -424,6 +424,46 @@
           <button class="export-report-btn" onclick="exportFinancialReport()">EXPORT REPORT</button>
         </div>
 
+        <!-- Top Moving Products Section -->
+        <div class="top-moving-products">
+          <div class="top-moving-header">
+            <h2>TOP MOVING PRODUCTS</h2>
+            <div class="date-range-selector">
+              <input type="date" id="top-moving-start-date" onchange="updateTopMovingProducts()">
+              <span class="date-separator">to</span>
+              <input type="date" id="top-moving-end-date" onchange="updateTopMovingProducts()">
+              <select id="top-moving-preset" onchange="setTopMovingDatePreset(this.value)">
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This Week</option>
+                <option value="month" selected>This Month</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
+            </div>
+          </div>
+          <div class="top-moving-table-container">
+            <table class="top-moving-table">
+              <thead>
+                <tr>
+                  <th class="col-product">PRODUCT</th>
+                  <th class="col-qty">QTY</th>
+                  <th class="col-price">PRICE</th>
+                  <th class="col-dc">DC</th>
+                  <th class="col-cost">COST</th>
+                  <th class="col-margin">MARGIN</th>
+                </tr>
+              </thead>
+              <tbody id="top-moving-tbody">
+                <!-- Populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="top-moving-footer">
+            <button class="export-top-moving-btn" onclick="exportTopMovingProducts()">EXPORT CSV</button>
+          </div>
+        </div>
+
         <!-- Profit Overview Section -->
         <div class="profit-overview">
           <div class="profit-header">

@@ -336,6 +336,7 @@ async function initializeMainApp() {
     updateLoadingStatus('Preparing dashboard...', 85);
     renderUserMenu();
     initSalesOverview();
+    initTopMovingProducts();
     generateNotifications();
 
     updateLoadingStatus('Finalizing...', 95);
@@ -1058,6 +1059,256 @@ Profit Margin: ${data.margin > 0 ? ((data.profit / data.margin) * 100).toFixed(1
   URL.revokeObjectURL(url);
 
   showToast('Report exported successfully!');
+}
+
+// ============================================
+// Top Moving Products Functions
+// ============================================
+
+// Initialize Top Moving Products date range
+function initTopMovingProducts() {
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const startInput = document.getElementById('top-moving-start-date');
+  const endInput = document.getElementById('top-moving-end-date');
+
+  if (startInput) startInput.value = formatDateForInput(startOfMonth);
+  if (endInput) endInput.value = formatDateForInput(today);
+
+  updateTopMovingProducts();
+}
+
+// Format date for input field (YYYY-MM-DD)
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Set date preset for Top Moving Products
+function setTopMovingDatePreset(preset) {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  let startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+
+  switch (preset) {
+    case 'today':
+      // startDate is already today
+      break;
+    case 'yesterday':
+      startDate.setDate(startDate.getDate() - 1);
+      today.setDate(today.getDate() - 1);
+      break;
+    case 'week':
+      startDate.setDate(startDate.getDate() - startDate.getDay()); // Start of week (Sunday)
+      break;
+    case 'month':
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      break;
+    case 'year':
+      startDate = new Date(today.getFullYear(), 0, 1);
+      break;
+    case 'custom':
+      // Don't change dates, let user pick
+      return;
+  }
+
+  const startInput = document.getElementById('top-moving-start-date');
+  const endInput = document.getElementById('top-moving-end-date');
+
+  if (startInput) startInput.value = formatDateForInput(startDate);
+  if (endInput) endInput.value = formatDateForInput(today);
+
+  updateTopMovingProducts();
+}
+
+// Get Top Moving Products data
+function getTopMovingProductsData() {
+  const startInput = document.getElementById('top-moving-start-date');
+  const endInput = document.getElementById('top-moving-end-date');
+
+  if (!startInput || !endInput) return [];
+
+  const startDate = new Date(startInput.value);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(endInput.value);
+  endDate.setHours(23, 59, 59, 999);
+
+  const transactions = state.transactions;
+  const products = state.products;
+
+  // Create product lookup
+  const productMap = {};
+  products.forEach(p => {
+    productMap[p.id] = {
+      name: p.name,
+      brand: p.brand || '',
+      category: p.category,
+      costPrice: p.costPrice || 0,
+      kgPerSack: p.kgPerSack || 25,
+      piecesPerBox: p.piecesPerBox || 1
+    };
+  });
+
+  // Aggregate sales by product
+  const productSales = {};
+
+  transactions.forEach(txn => {
+    const txnDate = new Date(txn.date);
+
+    // Check if transaction is within date range
+    if (txnDate < startDate || txnDate > endDate) return;
+
+    if (txn.items && Array.isArray(txn.items)) {
+      txn.items.forEach(item => {
+        const product = productMap[item.productId];
+        if (!product) return;
+
+        const costPrice = product.costPrice;
+        const kgPerSack = product.kgPerSack || 25;
+        const piecesPerBox = product.piecesPerBox || 1;
+
+        let itemCost = 0;
+        let itemRevenue = item.price || 0;
+        let quantity = 0;
+        let unitType = '';
+
+        // Calculate cost and quantity
+        if (item.kgAmount > 0) {
+          const costPerKg = costPrice / kgPerSack;
+          itemCost = costPerKg * item.kgAmount;
+          quantity = item.kgAmount;
+          unitType = 'kg';
+        } else if (item.sackAmount > 0) {
+          itemCost = costPrice * item.sackAmount;
+          quantity = item.sackAmount;
+          unitType = 'sack';
+        } else if (item.pieceAmount > 0) {
+          itemCost = costPrice * item.pieceAmount;
+          quantity = item.pieceAmount;
+          unitType = 'pc';
+        } else if (item.boxAmount > 0) {
+          itemCost = costPrice * piecesPerBox * item.boxAmount;
+          quantity = item.boxAmount;
+          unitType = 'box';
+        } else {
+          itemCost = costPrice * (item.quantity || 1);
+          quantity = item.quantity || 1;
+          unitType = 'unit';
+        }
+
+        const discount = item.discount || 0;
+        const margin = itemRevenue - itemCost;
+
+        // Aggregate by product
+        if (!productSales[item.productId]) {
+          productSales[item.productId] = {
+            productId: item.productId,
+            name: product.name,
+            brand: product.brand,
+            category: product.category,
+            quantity: 0,
+            unitType: unitType,
+            price: 0,
+            discount: 0,
+            cost: 0,
+            margin: 0
+          };
+        }
+
+        productSales[item.productId].quantity += quantity;
+        productSales[item.productId].price += itemRevenue;
+        productSales[item.productId].discount += discount;
+        productSales[item.productId].cost += itemCost;
+        productSales[item.productId].margin += margin;
+      });
+    }
+  });
+
+  // Convert to array and sort by margin (highest first)
+  return Object.values(productSales)
+    .sort((a, b) => b.margin - a.margin);
+}
+
+// Update Top Moving Products display
+function updateTopMovingProducts() {
+  const data = getTopMovingProductsData();
+  const tbody = document.getElementById('top-moving-tbody');
+
+  if (!tbody) return;
+
+  if (data.length === 0) {
+    tbody.innerHTML = `
+      <tr class="no-data-row">
+        <td colspan="6">No sales data for this period</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = data.map(item => {
+    const marginClass = item.margin >= 0 ? 'margin-positive' : 'margin-negative';
+    const qtyDisplay = item.unitType === 'kg'
+      ? item.quantity.toFixed(2)
+      : item.quantity.toFixed(item.quantity % 1 === 0 ? 0 : 1);
+
+    return `
+      <tr>
+        <td class="col-product">${item.name}${item.unitType ? ` <small class="unit-type">${item.unitType.toUpperCase()}${item.unitType !== 'kg' ? 's' : ''}</small>` : ''}</td>
+        <td class="col-qty">${qtyDisplay}</td>
+        <td class="col-price">${formatNumber(item.price)}</td>
+        <td class="col-dc">${item.discount > 0 ? formatNumber(item.discount) : '0'}</td>
+        <td class="col-cost">${formatNumber(item.cost)}</td>
+        <td class="col-margin ${marginClass}">${formatNumber(item.margin)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Export Top Moving Products to CSV
+function exportTopMovingProducts() {
+  const data = getTopMovingProductsData();
+  const startDate = document.getElementById('top-moving-start-date')?.value || '';
+  const endDate = document.getElementById('top-moving-end-date')?.value || '';
+
+  if (data.length === 0) {
+    showToast('No data to export');
+    return;
+  }
+
+  // Build CSV content
+  let csv = 'PRODUCT,QTY,UNIT,PRICE,DISCOUNT,COST,MARGIN\n';
+
+  data.forEach(item => {
+    const qty = item.unitType === 'kg' ? item.quantity.toFixed(2) : item.quantity;
+    csv += `"${item.name}",${qty},${item.unitType},${item.price.toFixed(2)},${item.discount.toFixed(2)},${item.cost.toFixed(2)},${item.margin.toFixed(2)}\n`;
+  });
+
+  // Add totals row
+  const totals = data.reduce((acc, item) => ({
+    price: acc.price + item.price,
+    discount: acc.discount + item.discount,
+    cost: acc.cost + item.cost,
+    margin: acc.margin + item.margin
+  }), { price: 0, discount: 0, cost: 0, margin: 0 });
+
+  csv += `\nTOTAL,,,${totals.price.toFixed(2)},${totals.discount.toFixed(2)},${totals.cost.toFixed(2)},${totals.margin.toFixed(2)}\n`;
+
+  // Download file
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `top-moving-products_${startDate}_to_${endDate}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('CSV exported successfully!');
 }
 
 // Get profit breakdown by product for the selected period
