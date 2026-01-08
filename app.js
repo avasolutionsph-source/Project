@@ -2778,7 +2778,13 @@ async function confirmCheckout() {
         quantity: item.quantity,
         unit: item.unit,
         unitPrice: item.unitPrice,
-        price: item.price
+        price: item.price,
+        // Amount fields for accurate cost calculations
+        kgAmount: item.kgAmount || 0,
+        sackAmount: item.sackAmount || 0,
+        pieceAmount: item.pieceAmount || 0,
+        boxAmount: item.boxAmount || 0,
+        isWholesale: item.isWholesale || false
       })),
       subtotal: state.cartTotal,
       total: state.cartTotal,
@@ -4179,29 +4185,18 @@ function editProduct(productId) {
   document.getElementById("edit-wholesale-min").value = product.wholesaleMin || "";
   document.getElementById("edit-wholesale-min-kg").value = product.wholesaleMinKg || "";
 
-  // Set wholesale type toggle based on product data
-  if (product.category === "Feed") {
-    document.getElementById("wholesale-type-container").style.display = "block";
-    document.getElementById("wholesale-min-boxes-group").style.display = "none";
-
-    if (product.wholesaleMinKg) {
-      setWholesaleType('kg');
-    } else {
-      setWholesaleType('sacks');
-    }
-  } else {
-    // Non-feed products use boxes only
-    document.getElementById("wholesale-type-container").style.display = "none";
-    document.getElementById("wholesale-min-sacks-group").style.display = "none";
-    document.getElementById("wholesale-min-kg-group").style.display = "none";
-    document.getElementById("wholesale-min-boxes-group").style.display = "block";
-  }
-
   // Load existing image
   currentProductImage = product.image || null;
   updateImagePreview(currentProductImage);
 
+  // Toggle pricing fields first (this sets default wholesale type to 'sacks')
   togglePricingFields(product.category);
+
+  // THEN override the wholesale type based on saved product data
+  if (product.category === "Feed" && product.wholesaleMinKg) {
+    setWholesaleType('kg');
+  }
+
   document.getElementById("edit-product-modal").classList.add("active");
 }
 
