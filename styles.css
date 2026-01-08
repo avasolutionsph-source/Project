@@ -5253,97 +5253,120 @@ body.sidebar-collapsed .main-content {
 .top-moving-products {
   background: var(--surface);
   border-radius: 16px;
-  padding: 25px;
+  padding: 25px 30px;
   margin-top: 25px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .top-moving-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   flex-wrap: wrap;
   gap: 15px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border);
 }
 
 .top-moving-header h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .date-range-selector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .date-range-selector input[type="date"] {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border: 2px solid #9333ea;
   border-radius: 8px;
   font-size: 0.9rem;
-  background: var(--surface-light);
-  color: var(--text-primary);
+  font-weight: 600;
+  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+  color: white;
+  cursor: pointer;
+}
+
+.date-range-selector input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
   cursor: pointer;
 }
 
 .date-range-selector input[type="date"]:focus {
   outline: none;
-  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.3);
 }
 
 .date-separator {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .date-range-selector select {
-  padding: 8px 30px 8px 12px;
+  padding: 10px 35px 10px 15px;
   border: none;
   border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
   color: white;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 12px center;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.date-range-selector select:hover {
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
 }
 
 .top-moving-table-container {
   overflow-x: auto;
-  margin: 0 -10px;
-  padding: 0 10px;
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .top-moving-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .top-moving-table thead {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #f1f5f9;
 }
 
 .dark-mode .top-moving-table thead {
-  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  background: #1e293b;
 }
 
 .top-moving-table th {
-  padding: 14px 12px;
+  padding: 16px 20px;
   text-align: left;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #64748b;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--border);
+  text-transform: uppercase;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.dark-mode .top-moving-table th {
+  color: #94a3b8;
+  border-bottom-color: #334155;
 }
 
 .top-moving-table th.col-qty,
@@ -5355,21 +5378,41 @@ body.sidebar-collapsed .main-content {
 }
 
 .top-moving-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
   color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.dark-mode .top-moving-table td {
+  border-bottom-color: #334155;
 }
 
 .top-moving-table td.col-product {
-  font-weight: 500;
-  max-width: 200px;
+  font-weight: 600;
+  max-width: 280px;
+  color: #1e293b;
+}
+
+.dark-mode .top-moving-table td.col-product {
+  color: #f1f5f9;
 }
 
 .top-moving-table td.col-product .unit-type {
-  color: var(--text-muted);
-  font-weight: 400;
-  font-size: 0.75rem;
-  margin-left: 4px;
+  display: inline-block;
+  background: #e2e8f0;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.dark-mode .top-moving-table td.col-product .unit-type {
+  background: #334155;
+  color: #94a3b8;
 }
 
 .top-moving-table td.col-qty,
@@ -5379,65 +5422,114 @@ body.sidebar-collapsed .main-content {
 .top-moving-table td.col-margin {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.top-moving-table td.col-qty {
+  color: #475569;
+}
+
+.dark-mode .top-moving-table td.col-qty {
+  color: #cbd5e1;
+}
+
+.top-moving-table td.col-price {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.dark-mode .top-moving-table td.col-price {
+  color: #f1f5f9;
 }
 
 .top-moving-table td.col-dc {
   color: #ef4444;
+  font-weight: 600;
+}
+
+.top-moving-table td.col-cost {
+  color: #64748b;
+}
+
+.dark-mode .top-moving-table td.col-cost {
+  color: #94a3b8;
 }
 
 .top-moving-table td.col-margin.margin-positive {
   color: #10b981;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1rem;
 }
 
 .top-moving-table td.col-margin.margin-negative {
   color: #ef4444;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.top-moving-table tbody tr {
+  transition: background 0.15s ease;
 }
 
 .top-moving-table tbody tr:hover {
-  background: var(--surface-light);
+  background: #f8fafc;
+}
+
+.dark-mode .top-moving-table tbody tr:hover {
+  background: #1e293b;
 }
 
 .top-moving-table tbody tr:nth-child(even) {
-  background: rgba(0, 0, 0, 0.02);
+  background: #fafbfc;
 }
 
 .dark-mode .top-moving-table tbody tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.top-moving-table tbody tr:nth-child(even):hover {
+  background: #f1f5f9;
+}
+
+.dark-mode .top-moving-table tbody tr:nth-child(even):hover {
+  background: #1e293b;
+}
+
 .top-moving-table .no-data-row td {
   text-align: center;
-  padding: 40px 20px;
+  padding: 50px 20px;
   color: var(--text-muted);
   font-style: italic;
+  font-size: 1rem;
 }
 
 .top-moving-footer {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px dashed var(--border);
+  padding-top: 20px;
+  border-top: 2px dashed var(--border);
 }
 
 .export-top-moving-btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 2px solid #9333ea;
   border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  font-weight: 500;
+  color: #9333ea;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .export-top-moving-btn:hover {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+  border-color: #9333ea;
   color: white;
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
 }
 
 /* Responsive - Top Moving Products */
@@ -5451,6 +5543,10 @@ body.sidebar-collapsed .main-content {
     align-items: flex-start;
   }
 
+  .top-moving-header h2 {
+    font-size: 1.1rem;
+  }
+
   .date-range-selector {
     width: 100%;
     flex-wrap: wrap;
@@ -5458,7 +5554,9 @@ body.sidebar-collapsed .main-content {
 
   .date-range-selector input[type="date"] {
     flex: 1;
-    min-width: 120px;
+    min-width: 130px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
   }
 
   .date-range-selector select {
@@ -5467,17 +5565,28 @@ body.sidebar-collapsed .main-content {
   }
 
   .top-moving-table {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
-  .top-moving-table th,
+  .top-moving-table th {
+    padding: 12px 10px;
+    font-size: 0.75rem;
+  }
+
   .top-moving-table td {
-    padding: 10px 8px;
+    padding: 12px 10px;
   }
 
   .top-moving-table td.col-product {
-    max-width: 120px;
+    max-width: 140px;
     word-break: break-word;
+  }
+
+  .top-moving-table td.col-product .unit-type {
+    display: block;
+    margin-left: 0;
+    margin-top: 4px;
+    width: fit-content;
   }
 }
 
