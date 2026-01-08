@@ -1304,10 +1304,17 @@ function updateTopMovingProducts() {
       ? item.quantity.toFixed(2)
       : item.quantity.toFixed(item.quantity % 1 === 0 ? 0 : 1);
 
+    // Format unit label for QTY column
+    const unitLabel = item.unitType === 'kg' ? 'KG'
+      : item.unitType === 'sack' ? (item.quantity === 1 ? 'SACK' : 'SACKS')
+      : item.unitType === 'box' ? (item.quantity === 1 ? 'BOX' : 'BOXES')
+      : item.unitType === 'pc' ? (item.quantity === 1 ? 'PC' : 'PCS')
+      : '';
+
     return `
       <tr>
-        <td class="col-product">${item.name}${item.unitType ? ` <small class="unit-type">${item.unitType.toUpperCase()}${item.unitType !== 'kg' ? 's' : ''}</small>` : ''}</td>
-        <td class="col-qty">${qtyDisplay}</td>
+        <td class="col-product">${item.name}</td>
+        <td class="col-qty">${qtyDisplay} <small class="unit-label">${unitLabel}</small></td>
         <td class="col-price">${formatNumber(item.price)}</td>
         <td class="col-dc">${item.discount > 0 ? formatNumber(item.discount) : '0'}</td>
         <td class="col-cost">${formatNumber(item.cost)}</td>
