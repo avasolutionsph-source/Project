@@ -1006,7 +1006,15 @@ function updateFinancialReports() {
 
   if (marginEl) marginEl.textContent = formatNumber(data.margin);
   if (expensesEl) expensesEl.textContent = formatNumber(data.expenses);
-  if (profitEl) profitEl.textContent = formatNumber(data.profit);
+  if (profitEl) {
+    profitEl.textContent = formatNumber(data.profit);
+    // Add/remove negative class for color styling
+    if (data.profit < 0) {
+      profitEl.classList.add('negative');
+    } else {
+      profitEl.classList.remove('negative');
+    }
+  }
 }
 
 // Export financial report

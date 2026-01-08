@@ -393,9 +393,9 @@
         </div>
 
         <!-- Financial Reports Section -->
-        <div class="financial-reports">
-          <div class="reports-header">
-            <h2>Financial Report</h2>
+        <div class="financial-reports-simple">
+          <div class="financial-reports-header">
+            <h2>FINANCIAL REPORT</h2>
             <select class="reports-period-select" id="reports-period-select" onchange="changeReportsPeriod(this.value)">
               <option value="today" selected>Today</option>
               <option value="week">This Week</option>
@@ -404,24 +404,33 @@
               <option value="total">All Time</option>
             </select>
           </div>
-          <div class="reports-cards">
-            <div class="report-card report-margin">
-              <div class="report-label">Margin</div>
-              <div class="report-currency">P</div>
-              <div class="report-value" id="report-margin-value">0.00</div>
-            </div>
-            <div class="report-card report-expenses">
-              <div class="report-label">Expenses</div>
-              <div class="report-currency">P</div>
-              <div class="report-value" id="report-expenses-value">0.00</div>
-            </div>
-            <div class="report-card report-profit">
-              <div class="report-label">Profit</div>
-              <div class="report-currency">P</div>
-              <div class="report-value" id="report-profit-value">0.00</div>
-            </div>
+          <div class="financial-table-container">
+            <table class="financial-table">
+              <thead>
+                <tr>
+                  <th class="col-metric">METRIC</th>
+                  <th class="col-amount">AMOUNT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="col-metric">Revenue (Margin)</td>
+                  <td class="col-amount" id="report-margin-value">0</td>
+                </tr>
+                <tr>
+                  <td class="col-metric">Cost (Expenses)</td>
+                  <td class="col-amount" id="report-expenses-value">0</td>
+                </tr>
+                <tr class="profit-row">
+                  <td class="col-metric">Net Profit</td>
+                  <td class="col-amount profit-value" id="report-profit-value">0</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <button class="export-report-btn" onclick="exportFinancialReport()">EXPORT REPORT</button>
+          <div class="financial-footer">
+            <button class="export-report-btn" onclick="exportFinancialReport()">EXPORT REPORT</button>
+          </div>
         </div>
 
         <!-- Top Moving Products Section -->
