@@ -1253,8 +1253,11 @@ function getTopMovingProductsData() {
         const margin = itemRevenue - itemCost;
 
         // Aggregate by product
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = {
+        // Use composite key: productId + unitType to separate KG/SACK/BOX/PC sales
+        const salesKey = `${item.productId}_${unitType}`;
+
+        if (!productSales[salesKey]) {
+          productSales[salesKey] = {
             productId: item.productId,
             name: product.name,
             brand: product.brand,
@@ -1268,11 +1271,11 @@ function getTopMovingProductsData() {
           };
         }
 
-        productSales[item.productId].quantity += quantity;
-        productSales[item.productId].price += itemRevenue;
-        productSales[item.productId].discount += discount;
-        productSales[item.productId].cost += itemCost;
-        productSales[item.productId].margin += margin;
+        productSales[salesKey].quantity += quantity;
+        productSales[salesKey].price += itemRevenue;
+        productSales[salesKey].discount += discount;
+        productSales[salesKey].cost += itemCost;
+        productSales[salesKey].margin += margin;
       });
     }
   });
