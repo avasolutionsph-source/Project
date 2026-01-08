@@ -874,10 +874,11 @@ function changeProfitSoldPeriod(period) {
 // Change reports period (for financial reports section)
 function changeReportsPeriod(period) {
   reportsPeriod = period;
-  // Update button states
-  document.querySelectorAll('.reports-period-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.period === period);
-  });
+  // Update dropdown if called programmatically
+  const select = document.getElementById('reports-period-select');
+  if (select && select.value !== period) {
+    select.value = period;
+  }
   updateFinancialReports();
 }
 
