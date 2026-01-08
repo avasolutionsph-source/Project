@@ -1096,6 +1096,32 @@ function initSalesOverview() {
   renderRecentSales();
 }
 
+// Event-driven update after a sale is completed
+function updateDashboardAfterSale() {
+  const currentYear = new Date().getFullYear();
+
+  // Update sales overview
+  updateMonthlySales();
+  updateYearlySales(currentYear);
+  updateAllTimeSales();
+
+  // Update dashboard cards (Today's Sales, Total Products, etc.)
+  updateDashboardCards();
+
+  // Update profit displays
+  updateProfitDisplay();
+  updateProfitFromSold();
+
+  // Update recent sales list
+  renderRecentSales();
+
+  // Update month selector in case this is first sale of a new month
+  const currentMonth = new Date().getMonth() + 1;
+  populateMonthSelector(currentYear, currentMonth);
+
+  console.log('[Dashboard] Updated after sale');
+}
+
 // Populate month selector from real transaction data
 function populateMonthSelector(currentYear, currentMonth) {
   const selector = document.getElementById("month-selector");
@@ -2243,6 +2269,9 @@ async function confirmCheckout() {
       closeCheckoutModal();
       hideLoading();
       showToast("Transaction completed successfully!");
+
+      // Update dashboard displays (event-driven updates)
+      updateDashboardAfterSale();
     } catch (deductError) {
       // Rollback: restore state if deductions failed
       console.error("Checkout deduction error:", deductError);
