@@ -5328,6 +5328,12 @@ body.sidebar-collapsed .main-content {
   box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
 }
 
+.date-range-selector select option {
+  background: white;
+  color: #1e293b;
+  font-weight: 500;
+}
+
 .date-range-selector select:hover {
   box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
 }
