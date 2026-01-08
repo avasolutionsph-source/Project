@@ -2227,25 +2227,70 @@ function updatePreviewPrice() {
   let regularPrice = 0;
 
   if (product.category === "Feed") {
+    const kgPerSack = product.kgPerSack || 25;
+
     if (state.selectedUnit === "sack") {
       regularPrice = product.pricePerSack * state.quantity;
-      // Check for wholesale
-      if (product.wholesalePrice && product.wholesaleMin && state.quantity >= product.wholesaleMin) {
-        price = product.wholesalePrice * state.quantity;
-        isWholesale = true;
+      const totalKg = kgPerSack * state.quantity;
+
+      // Check for wholesale (sack-based or KG-based)
+      if (product.wholesalePrice) {
+        if (product.wholesaleMinKg && totalKg >= product.wholesaleMinKg) {
+          // KG-based wholesale threshold met
+          price = product.wholesalePrice * state.quantity;
+          isWholesale = true;
+        } else if (product.wholesaleMin && state.quantity >= product.wholesaleMin) {
+          // Sack-based wholesale threshold met
+          price = product.wholesalePrice * state.quantity;
+          isWholesale = true;
+        } else {
+          price = regularPrice;
+        }
       } else {
         price = regularPrice;
       }
     } else if (state.selectedUnit === "custom") {
-      price = product.pricePerKg * state.customKg * state.quantity;
+      // Custom KG input
+      const totalKg = state.customKg * state.quantity;
+      regularPrice = product.pricePerKg * totalKg;
+
+      // Check KG-based wholesale
+      if (product.wholesalePrice && product.wholesaleMinKg && totalKg >= product.wholesaleMinKg) {
+        const wholesalePricePerKg = product.wholesalePrice / kgPerSack;
+        price = wholesalePricePerKg * totalKg;
+        isWholesale = true;
+      } else {
+        price = regularPrice;
+      }
     } else if (state.selectedUnit === "feed-combo") {
       // Feed combo: sacks + kg
+      const totalKg = (feedComboSacks * kgPerSack) + feedComboKg;
       const sackPrice = product.pricePerSack * feedComboSacks;
       const kgPrice = product.pricePerKg * feedComboKg;
-      price = sackPrice + kgPrice;
+      regularPrice = sackPrice + kgPrice;
+
+      // Check KG-based wholesale for combo
+      if (product.wholesalePrice && product.wholesaleMinKg && totalKg >= product.wholesaleMinKg) {
+        const wholesalePricePerKg = product.wholesalePrice / kgPerSack;
+        price = wholesalePricePerKg * totalKg;
+        isWholesale = true;
+      } else {
+        price = regularPrice;
+      }
     } else {
+      // Preset KG buttons (0.25, 0.50, 0.75, 1.00)
       const kg = parseFloat(state.selectedUnit);
-      price = product.pricePerKg * kg * state.quantity;
+      const totalKg = kg * state.quantity;
+      regularPrice = product.pricePerKg * totalKg;
+
+      // Check KG-based wholesale
+      if (product.wholesalePrice && product.wholesaleMinKg && totalKg >= product.wholesaleMinKg) {
+        const wholesalePricePerKg = product.wholesalePrice / kgPerSack;
+        price = wholesalePricePerKg * totalKg;
+        isWholesale = true;
+      } else {
+        price = regularPrice;
+      }
     }
   } else {
     // Medicine, Vitamins, Accessories, Grooming, Treats - Box or Piece
@@ -2288,11 +2333,40 @@ function updatePreviewPrice() {
     // Remove wholesale hint if exists
     document.getElementById("wholesale-hint")?.remove();
 
-    // Show hint for how many more needed for wholesale (only for sacks/boxes, not pieces)
-    if (product.wholesaleMin && product.wholesalePrice && (state.selectedUnit === "sack" || state.selectedUnit === "box")) {
-      const remaining = product.wholesaleMin - state.quantity;
-      const unitName = state.selectedUnit === "sack" ? "sacks" : "boxes";
-      if (remaining > 0) {
+    // Show hint for how many more needed for wholesale
+    if (product.wholesalePrice) {
+      let hintMessage = null;
+
+      if (product.category === "Feed" && product.wholesaleMinKg) {
+        // KG-based wholesale hint for Feed products
+        const kgPerSack = product.kgPerSack || 25;
+        let currentKg = 0;
+
+        if (state.selectedUnit === "sack") {
+          currentKg = kgPerSack * state.quantity;
+        } else if (state.selectedUnit === "custom") {
+          currentKg = state.customKg * state.quantity;
+        } else if (state.selectedUnit === "feed-combo") {
+          currentKg = (feedComboSacks * kgPerSack) + feedComboKg;
+        } else {
+          const kg = parseFloat(state.selectedUnit);
+          currentKg = kg * state.quantity;
+        }
+
+        const remainingKg = product.wholesaleMinKg - currentKg;
+        if (remainingKg > 0) {
+          hintMessage = `Add ${remainingKg.toFixed(2)} more kg for wholesale price!`;
+        }
+      } else if (product.wholesaleMin && (state.selectedUnit === "sack" || state.selectedUnit === "box")) {
+        // Sack/Box-based wholesale hint
+        const remaining = product.wholesaleMin - state.quantity;
+        const unitName = state.selectedUnit === "sack" ? "sacks" : "boxes";
+        if (remaining > 0) {
+          hintMessage = `Add ${remaining} more ${unitName} for wholesale price!`;
+        }
+      }
+
+      if (hintMessage) {
         let hintEl = document.getElementById("wholesale-hint");
         if (!hintEl) {
           hintEl = document.createElement("div");
@@ -2301,7 +2375,7 @@ function updatePreviewPrice() {
           previewEl.parentNode.appendChild(hintEl);
         }
         hintEl.className = "wholesale-hint pending";
-        hintEl.innerHTML = `Add ${remaining} more ${unitName} for wholesale price!`;
+        hintEl.innerHTML = hintMessage;
       }
     }
   }
@@ -2335,11 +2409,22 @@ function addToCart() {
   let isWholesale = false; // Track if wholesale pricing was applied
 
   if (product.category === "Feed") {
+    const kgPerSack = product.kgPerSack || 25;
+
     if (state.selectedUnit === "sack") {
-      // Check if wholesale pricing applies (for sacks)
-      if (product.wholesalePrice && product.wholesaleMin && state.quantity >= product.wholesaleMin) {
-        price = product.wholesalePrice * state.quantity;
-        isWholesale = true;
+      const totalKg = kgPerSack * state.quantity;
+
+      // Check if wholesale pricing applies (sack-based or KG-based)
+      if (product.wholesalePrice) {
+        if (product.wholesaleMinKg && totalKg >= product.wholesaleMinKg) {
+          price = product.wholesalePrice * state.quantity;
+          isWholesale = true;
+        } else if (product.wholesaleMin && state.quantity >= product.wholesaleMin) {
+          price = product.wholesalePrice * state.quantity;
+          isWholesale = true;
+        } else {
+          price = product.pricePerSack * state.quantity;
+        }
       } else {
         price = product.pricePerSack * state.quantity;
       }
@@ -2353,10 +2438,21 @@ function addToCart() {
         showToast(`Not enough display stock! Available: ${displayStock.toFixed(2)} kg`);
         return;
       }
-      price = product.pricePerKg * state.customKg * state.quantity;
-      unitLabel = `${kgAmount.toFixed(2)} KG`;
+
+      // Check KG-based wholesale
+      if (product.wholesalePrice && product.wholesaleMinKg && kgAmount >= product.wholesaleMinKg) {
+        const wholesalePricePerKg = product.wholesalePrice / kgPerSack;
+        price = wholesalePricePerKg * kgAmount;
+        isWholesale = true;
+        unitLabel = `${kgAmount.toFixed(2)} KG (Wholesale)`;
+      } else {
+        price = product.pricePerKg * state.customKg * state.quantity;
+        unitLabel = `${kgAmount.toFixed(2)} KG`;
+      }
     } else if (state.selectedUnit === "feed-combo") {
       // Feed combo: sacks + kg
+      const totalKg = (feedComboSacks * kgPerSack) + feedComboKg;
+
       // Check if enough display stock for kg portion
       if (feedComboKg > 0) {
         const displayStock = getDisplayKgForProduct(product.id);
@@ -2365,16 +2461,24 @@ function addToCart() {
           return;
         }
       }
-      const sackPrice = product.pricePerSack * feedComboSacks;
-      const kgPrice = product.pricePerKg * feedComboKg;
-      price = sackPrice + kgPrice;
+
+      // Check KG-based wholesale for combo
+      if (product.wholesalePrice && product.wholesaleMinKg && totalKg >= product.wholesaleMinKg) {
+        const wholesalePricePerKg = product.wholesalePrice / kgPerSack;
+        price = wholesalePricePerKg * totalKg;
+        isWholesale = true;
+      } else {
+        const sackPrice = product.pricePerSack * feedComboSacks;
+        const kgPrice = product.pricePerKg * feedComboKg;
+        price = sackPrice + kgPrice;
+      }
       kgAmount = feedComboKg; // Only kg portion deducts from display
 
       // Build label
       const parts = [];
       if (feedComboSacks > 0) parts.push(`${feedComboSacks} Sack(s)`);
       if (feedComboKg > 0) parts.push(`${feedComboKg} KG`);
-      unitLabel = parts.join(' + ');
+      unitLabel = parts.join(' + ') + (isWholesale ? ' (Wholesale)' : '');
     } else {
       const kg = parseFloat(state.selectedUnit);
       kgAmount = kg * state.quantity;
@@ -2384,8 +2488,17 @@ function addToCart() {
         showToast(`Not enough display stock! Available: ${displayStock.toFixed(2)} kg`);
         return;
       }
-      price = product.pricePerKg * kg * state.quantity;
-      unitLabel = `${kgAmount.toFixed(2)} KG`;
+
+      // Check KG-based wholesale
+      if (product.wholesalePrice && product.wholesaleMinKg && kgAmount >= product.wholesaleMinKg) {
+        const wholesalePricePerKg = product.wholesalePrice / kgPerSack;
+        price = wholesalePricePerKg * kgAmount;
+        isWholesale = true;
+        unitLabel = `${kgAmount.toFixed(2)} KG (Wholesale)`;
+      } else {
+        price = product.pricePerKg * kg * state.quantity;
+        unitLabel = `${kgAmount.toFixed(2)} KG`;
+      }
     }
   } else {
     // Medicine, Vitamins, Accessories, Grooming, Treats - Box or Piece
@@ -4064,6 +4177,25 @@ function editProduct(productId) {
   document.getElementById("edit-cost-price").value = product.costPrice || "";
   document.getElementById("edit-wholesale-price").value = product.wholesalePrice || "";
   document.getElementById("edit-wholesale-min").value = product.wholesaleMin || "";
+  document.getElementById("edit-wholesale-min-kg").value = product.wholesaleMinKg || "";
+
+  // Set wholesale type toggle based on product data
+  if (product.category === "Feed") {
+    document.getElementById("wholesale-type-container").style.display = "block";
+    document.getElementById("wholesale-min-boxes-group").style.display = "none";
+
+    if (product.wholesaleMinKg) {
+      setWholesaleType('kg');
+    } else {
+      setWholesaleType('sacks');
+    }
+  } else {
+    // Non-feed products use boxes only
+    document.getElementById("wholesale-type-container").style.display = "none";
+    document.getElementById("wholesale-min-sacks-group").style.display = "none";
+    document.getElementById("wholesale-min-kg-group").style.display = "none";
+    document.getElementById("wholesale-min-boxes-group").style.display = "block";
+  }
 
   // Load existing image
   currentProductImage = product.image || null;
@@ -4109,10 +4241,39 @@ function togglePricingFields(category) {
   if (category === "Feed") {
     feedPricing.forEach(el => el.style.display = "block");
     medicinePricing.forEach(el => el.style.display = "none");
+    // Show wholesale type toggle for Feed
+    document.getElementById("wholesale-type-container").style.display = "block";
+    document.getElementById("wholesale-min-boxes-group").style.display = "none";
+    setWholesaleType('sacks'); // Default to sacks for new Feed products
   } else {
     // Medicine, Vitamins, Accessories, Grooming, Treats all use piece/box pricing
     feedPricing.forEach(el => el.style.display = "none");
     medicinePricing.forEach(el => el.style.display = "block");
+    // Hide wholesale type toggle for non-Feed, show boxes only
+    document.getElementById("wholesale-type-container").style.display = "none";
+    document.getElementById("wholesale-min-sacks-group").style.display = "none";
+    document.getElementById("wholesale-min-kg-group").style.display = "none";
+    document.getElementById("wholesale-min-boxes-group").style.display = "block";
+  }
+}
+
+// Toggle between Min Sacks and Min KG for wholesale (Feed products only)
+function setWholesaleType(type) {
+  const sackBtn = document.querySelector('.toggle-btn[data-type="sacks"]');
+  const kgBtn = document.querySelector('.toggle-btn[data-type="kg"]');
+  const sacksGroup = document.getElementById("wholesale-min-sacks-group");
+  const kgGroup = document.getElementById("wholesale-min-kg-group");
+
+  if (type === 'kg') {
+    sackBtn?.classList.remove('active');
+    kgBtn?.classList.add('active');
+    sacksGroup.style.display = 'none';
+    kgGroup.style.display = 'block';
+  } else {
+    kgBtn?.classList.remove('active');
+    sackBtn?.classList.add('active');
+    kgGroup.style.display = 'none';
+    sacksGroup.style.display = 'block';
   }
 }
 
@@ -4157,7 +4318,24 @@ async function saveProduct() {
   // Get wholesale field values
   const costPrice = parseFloat(document.getElementById("edit-cost-price").value) || 0;
   const wholesalePrice = parseFloat(document.getElementById("edit-wholesale-price").value) || 0;
-  const wholesaleMin = parseInt(document.getElementById("edit-wholesale-min").value) || 0;
+
+  // Get wholesale minimum based on type (sacks vs kg for Feed, boxes for non-Feed)
+  let wholesaleMin = 0;
+  let wholesaleMinKg = 0;
+
+  if (category === "Feed") {
+    const wholesaleType = document.querySelector('.toggle-btn[data-type="kg"]')?.classList.contains('active') ? 'kg' : 'sacks';
+    if (wholesaleType === 'kg') {
+      wholesaleMinKg = parseFloat(document.getElementById("edit-wholesale-min-kg").value) || 0;
+      wholesaleMin = 0; // Clear sacks minimum when using KG
+    } else {
+      wholesaleMin = parseInt(document.getElementById("edit-wholesale-min").value) || 0;
+      wholesaleMinKg = 0; // Clear KG minimum when using sacks
+    }
+  } else {
+    wholesaleMin = parseInt(document.getElementById("edit-wholesale-min").value) || 0;
+    wholesaleMinKg = 0;
+  }
 
   if (state.editingProductId) {
     // Edit existing
@@ -4169,6 +4347,7 @@ async function saveProduct() {
       product.costPrice = costPrice;
       product.wholesalePrice = wholesalePrice;
       product.wholesaleMin = wholesaleMin;
+      product.wholesaleMinKg = wholesaleMinKg;
       product.image = currentProductImage; // Save image
       if (category === "Feed") {
         product.pricePerKg = parseFloat(document.getElementById("edit-price-per-kg").value) || 0;
@@ -4202,6 +4381,7 @@ async function saveProduct() {
       costPrice: costPrice,
       wholesalePrice: wholesalePrice,
       wholesaleMin: wholesaleMin,
+      wholesaleMinKg: wholesaleMinKg,
       image: currentProductImage // Save image
     };
 

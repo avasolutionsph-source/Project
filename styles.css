@@ -1540,6 +1540,41 @@ body.sidebar-collapsed .main-content {
   color: var(--text-secondary);
 }
 
+/* Wholesale Type Toggle Buttons */
+.toggle-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--border-color);
+  background: var(--surface-light);
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.toggle-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.wholesale-type-group label {
+  margin-bottom: 4px;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;

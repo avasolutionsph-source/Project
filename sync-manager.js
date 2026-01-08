@@ -290,7 +290,8 @@ class SyncManager {
         piecesPerBox: 'pieces_per_box',
         costPrice: 'cost_price',
         wholesalePrice: 'wholesale_price',
-        wholesaleMin: 'wholesale_min'
+        wholesaleMin: 'wholesale_min',
+        wholesaleMinKg: 'wholesale_min_kg'
       },
       inventory: {
         productId: 'product_id',
