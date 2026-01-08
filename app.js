@@ -325,6 +325,7 @@ async function initializeMainApp() {
 
     updateLoadingStatus('Setting up navigation...', 55);
     setupNavigation();
+    initSidebarState();
 
     updateLoadingStatus('Rendering products...', 70);
     renderProducts();
@@ -633,12 +634,35 @@ function navigateTo(screen) {
 
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
-  sidebar.classList.toggle("open");
+  const body = document.body;
+
+  // Toggle collapsed state
+  sidebar.classList.toggle("collapsed");
+  body.classList.toggle("sidebar-collapsed");
+
+  // Save preference to localStorage
+  const isCollapsed = sidebar.classList.contains("collapsed");
+  localStorage.setItem("sidebarCollapsed", isCollapsed);
 }
 
 function closeSidebar() {
   const sidebar = document.getElementById("sidebar");
-  sidebar.classList.remove("open");
+  const body = document.body;
+  sidebar.classList.add("collapsed");
+  body.classList.add("sidebar-collapsed");
+  localStorage.setItem("sidebarCollapsed", "true");
+}
+
+// Initialize sidebar state from localStorage
+function initSidebarState() {
+  const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+  const sidebar = document.getElementById("sidebar");
+  const body = document.body;
+
+  if (isCollapsed && sidebar) {
+    sidebar.classList.add("collapsed");
+    body.classList.add("sidebar-collapsed");
+  }
 }
 
 // ============================================

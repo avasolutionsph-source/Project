@@ -75,6 +75,18 @@ body {
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
 }
 
+/* Sidebar collapsed state */
+.sidebar.collapsed {
+  width: 0;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.sidebar.collapsed + .main-content,
+body.sidebar-collapsed .main-content {
+  margin-left: 0;
+}
+
 .sidebar-header {
   padding: 20px;
   border-bottom: 1px solid var(--surface-light);
@@ -249,13 +261,23 @@ body {
 }
 
 .menu-toggle {
-  display: none;
-  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-light);
   border: none;
   color: var(--text-primary);
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   cursor: pointer;
-  padding: 5px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: var(--transition);
+  margin-right: 15px;
+}
+
+.menu-toggle:hover {
+  background: var(--primary);
+  color: white;
 }
 
 .header h1 {
