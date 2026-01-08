@@ -3323,12 +3323,18 @@ async function addToDisplay() {
   const quantityLabel = isFeed ? "kg" : "piece(s)";
 
   // Add to display with sync metadata
+  // Include all fields with defaults to satisfy Supabase NOT NULL constraints
   const newDisplay = {
     id: Date.now(),
     productId: productId,
     productName: product.name,
     displayDate: displayDate,
     category: product.category,
+    // Default all quantity fields to 0 (Supabase requires non-null)
+    originalKg: 0,
+    remainingKg: 0,
+    originalPieces: 0,
+    remainingPieces: 0,
     syncStatus: 'pending',
     lastModified: new Date().toISOString()
   };
@@ -3340,7 +3346,6 @@ async function addToDisplay() {
   } else {
     newDisplay.originalPieces = displayQuantity;
     newDisplay.remainingPieces = displayQuantity;
-    newDisplay.remainingKg = 0; // Keep for compatibility
   }
 
   // Save to DB first, then update state

@@ -339,6 +339,14 @@ class SyncManager {
       result.transaction_date = data.date;
     }
 
+    // Handle display table - ensure required fields have defaults
+    if (tableName === 'display') {
+      result.original_kg = result.original_kg ?? 0;
+      result.remaining_kg = result.remaining_kg ?? 0;
+      result.original_pieces = result.original_pieces ?? 0;
+      result.remaining_pieces = result.remaining_pieces ?? 0;
+    }
+
     // Add supabaseId if exists (for updates)
     if (data.supabaseId) {
       result.id = data.supabaseId;
