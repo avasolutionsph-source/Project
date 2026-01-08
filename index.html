@@ -439,6 +439,27 @@
           </div>
         </div>
 
+        <!-- Profit From Sold - Product Breakdown -->
+        <div class="profit-from-sold">
+          <div class="profit-sold-header">
+            <h2>Profit by Product</h2>
+            <div class="profit-sold-toggle">
+              <button class="profit-sold-btn active" data-period="today" onclick="changeProfitSoldPeriod('today')">Today</button>
+              <button class="profit-sold-btn" data-period="week" onclick="changeProfitSoldPeriod('week')">This Week</button>
+              <button class="profit-sold-btn" data-period="month" onclick="changeProfitSoldPeriod('month')">This Month</button>
+              <button class="profit-sold-btn" data-period="year" onclick="changeProfitSoldPeriod('year')">This Year</button>
+              <button class="profit-sold-btn" data-period="total" onclick="changeProfitSoldPeriod('total')">All Time</button>
+            </div>
+          </div>
+          <div class="profit-sold-list" id="profit-sold-list">
+            <!-- Populated by JavaScript -->
+            <div class="no-profit-data">
+              <p>No sales data yet</p>
+              <small>Product profits will appear here after sales</small>
+            </div>
+          </div>
+        </div>
+
         <div class="recent-activity">
           <h2>Recent Sales</h2>
           <div class="activity-list">

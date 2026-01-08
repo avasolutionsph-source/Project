@@ -4827,3 +4827,268 @@ body {
   min-height: 24px;
   transition: opacity 0.2s ease;
 }
+
+/* ============================================
+   Profit From Sold - Product Breakdown
+   ============================================ */
+
+.profit-from-sold {
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.profit-sold-header {
+  display: flex;
+  align-items: baseline;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.profit-sold-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.profit-sold-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profit-sold-btn {
+  padding: 8px 16px;
+  border: none;
+  background: var(--surface-light);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.profit-sold-btn:hover {
+  background: var(--accent);
+  color: var(--text-primary);
+}
+
+.profit-sold-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.profit-sold-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.profit-sold-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profit-sold-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: var(--surface-light);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+.profit-sold-item:hover {
+  background: var(--accent);
+  transform: translateX(5px);
+}
+
+.profit-sold-rank {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.profit-sold-item:nth-child(1) .profit-sold-rank {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb300 100%);
+  color: #1a1a1a;
+}
+
+.profit-sold-item:nth-child(2) .profit-sold-rank {
+  background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%);
+  color: #1a1a1a;
+}
+
+.profit-sold-item:nth-child(3) .profit-sold-rank {
+  background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
+  color: white;
+}
+
+.profit-sold-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profit-sold-name {
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profit-sold-details {
+  display: flex;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.profit-sold-brand {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.profit-sold-category {
+  color: var(--text-secondary);
+}
+
+.profit-sold-qty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 80px;
+}
+
+.profit-sold-qty-value {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.profit-sold-revenue {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.profit-sold-profit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.profit-sold-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--success);
+}
+
+.profit-sold-amount.negative {
+  color: var(--danger);
+}
+
+.profit-sold-margin {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.no-profit-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.no-profit-data p {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.no-profit-data small {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* Responsive - Profit From Sold */
+@media (max-width: 768px) {
+  .profit-from-sold {
+    padding: 20px 15px;
+  }
+
+  .profit-sold-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .profit-sold-toggle {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+
+  .profit-sold-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .profit-sold-item {
+    grid-template-columns: 36px 1fr;
+    grid-template-rows: auto auto;
+    gap: 10px 12px;
+    padding: 12px;
+  }
+
+  .profit-sold-rank {
+    grid-row: span 2;
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .profit-sold-info {
+    grid-column: 2;
+  }
+
+  .profit-sold-qty {
+    display: none;
+  }
+
+  .profit-sold-profit {
+    grid-column: 2;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: unset;
+  }
+
+  .profit-sold-details {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .profit-sold-name {
+    font-size: 0.95rem;
+  }
+
+  .profit-sold-amount {
+    font-size: 1rem;
+  }
+}

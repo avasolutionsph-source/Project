@@ -707,6 +707,7 @@ const MONTH_NAMES = [
 
 // State for profit period selection
 let profitPeriod = 'today'; // 'today', 'week', 'month', 'year', 'total'
+let profitSoldPeriod = 'today'; // Separate period for profit by product section
 
 // Calculate profit from transactions
 function getProfitDataFromTransactions() {
@@ -849,10 +850,182 @@ function updateProfitDisplay() {
   });
 }
 
-// Change profit period
+// Change profit period (for profit overview cards)
 function changeProfitPeriod(period) {
   profitPeriod = period;
+  // Update button states
+  document.querySelectorAll('.profit-period-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === period);
+  });
   updateProfitDisplay();
+}
+
+// Change profit sold period (for profit by product section)
+function changeProfitSoldPeriod(period) {
+  profitSoldPeriod = period;
+  // Update button states
+  document.querySelectorAll('.profit-sold-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === period);
+  });
+  updateProfitFromSold();
+}
+
+// Get profit breakdown by product for the selected period
+function getProfitByProduct() {
+  const transactions = state.transactions;
+  const products = state.products;
+  const now = new Date();
+  const today = now.toDateString();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  // Create product lookup
+  const productMap = {};
+  products.forEach(p => {
+    productMap[p.id] = {
+      name: p.name,
+      brand: p.brand || '',
+      category: p.category,
+      costPrice: p.costPrice || 0,
+      kgPerSack: p.kgPerSack || 25,
+      piecesPerBox: p.piecesPerBox || 1
+    };
+  });
+
+  // Track profit by product
+  const profitByProduct = {};
+
+  transactions.forEach(txn => {
+    const txnDate = new Date(txn.date);
+    const txnDateStr = txnDate.toDateString();
+
+    // Check if transaction is in selected period (using profitSoldPeriod)
+    let inPeriod = false;
+    if (profitSoldPeriod === 'today' && txnDateStr === today) inPeriod = true;
+    else if (profitSoldPeriod === 'week' && txnDate >= startOfWeek) inPeriod = true;
+    else if (profitSoldPeriod === 'month' && txnDate >= startOfMonth) inPeriod = true;
+    else if (profitSoldPeriod === 'year' && txnDate >= startOfYear) inPeriod = true;
+    else if (profitSoldPeriod === 'total') inPeriod = true;
+
+    if (!inPeriod) return;
+
+    // Process items in transaction
+    if (txn.items && Array.isArray(txn.items)) {
+      txn.items.forEach(item => {
+        const product = productMap[item.productId];
+        if (!product) return;
+
+        const costPrice = product.costPrice;
+        let itemCost = 0;
+        let itemRevenue = item.price || 0;
+        let quantitySold = 0;
+        let unitType = '';
+
+        // Calculate cost and quantity based on sale type
+        if (item.kgAmount > 0) {
+          itemCost = costPrice * item.kgAmount;
+          quantitySold = item.kgAmount;
+          unitType = 'kg';
+        } else if (item.sackAmount > 0) {
+          itemCost = costPrice * product.kgPerSack * item.sackAmount;
+          quantitySold = item.sackAmount;
+          unitType = 'sack(s)';
+        } else if (item.pieceAmount > 0) {
+          itemCost = costPrice * item.pieceAmount;
+          quantitySold = item.pieceAmount;
+          unitType = 'pc(s)';
+        } else if (item.boxAmount > 0) {
+          itemCost = costPrice * product.piecesPerBox * item.boxAmount;
+          quantitySold = item.boxAmount;
+          unitType = 'box(es)';
+        } else {
+          itemCost = costPrice * (item.quantity || 1);
+          quantitySold = item.quantity || 1;
+          unitType = 'unit(s)';
+        }
+
+        const itemProfit = itemRevenue - itemCost;
+
+        // Aggregate by product
+        if (!profitByProduct[item.productId]) {
+          profitByProduct[item.productId] = {
+            productId: item.productId,
+            name: product.name,
+            brand: product.brand,
+            category: product.category,
+            totalRevenue: 0,
+            totalCost: 0,
+            totalProfit: 0,
+            quantitySold: 0,
+            unitType: unitType,
+            salesCount: 0
+          };
+        }
+
+        profitByProduct[item.productId].totalRevenue += itemRevenue;
+        profitByProduct[item.productId].totalCost += itemCost;
+        profitByProduct[item.productId].totalProfit += itemProfit;
+        profitByProduct[item.productId].quantitySold += quantitySold;
+        profitByProduct[item.productId].salesCount += 1;
+      });
+    }
+  });
+
+  // Convert to array and sort by profit (highest first)
+  const sortedProducts = Object.values(profitByProduct)
+    .sort((a, b) => b.totalProfit - a.totalProfit);
+
+  return sortedProducts;
+}
+
+// Update profit from sold display
+function updateProfitFromSold() {
+  const profitData = getProfitByProduct();
+  const container = document.getElementById('profit-sold-list');
+  if (!container) return;
+
+  if (profitData.length === 0) {
+    container.innerHTML = `
+      <div class="no-profit-data">
+        <p>No sales data for this period</p>
+        <small>Make some sales to see profit breakdown</small>
+      </div>
+    `;
+    return;
+  }
+
+  // Show top 10 products
+  const topProducts = profitData.slice(0, 10);
+
+  // Calculate margin for each product
+  const getMargin = (profit, revenue) => {
+    if (revenue === 0) return 0;
+    return ((profit / revenue) * 100).toFixed(1);
+  };
+
+  container.innerHTML = topProducts.map((item, index) => `
+    <div class="profit-sold-item">
+      <div class="profit-sold-rank">${index + 1}</div>
+      <div class="profit-sold-info">
+        <div class="profit-sold-name">${escapeHtml(item.name)}</div>
+        <div class="profit-sold-details">
+          ${item.brand ? `<span class="profit-sold-brand">${escapeHtml(item.brand)}</span>` : ''}
+          <span class="profit-sold-category">${escapeHtml(item.category || 'Other')}</span>
+        </div>
+      </div>
+      <div class="profit-sold-qty">
+        <span class="profit-sold-qty-value">${item.quantitySold.toFixed(item.unitType === 'kg' ? 2 : 0)} ${item.unitType}</span>
+        <span class="profit-sold-revenue">P${formatNumber(item.totalRevenue)}</span>
+      </div>
+      <div class="profit-sold-profit">
+        <span class="profit-sold-amount ${item.totalProfit < 0 ? 'negative' : ''}">${item.totalProfit >= 0 ? '+' : ''}P${formatNumber(Math.abs(item.totalProfit))}</span>
+        <span class="profit-sold-margin">${getMargin(item.totalProfit, item.totalRevenue)}% margin</span>
+      </div>
+    </div>
+  `).join('');
 }
 
 // Get sales data from real transactions
@@ -919,6 +1092,7 @@ function initSalesOverview() {
   updateAllTimeSales();
   updateDashboardCards();
   updateProfitDisplay();
+  updateProfitFromSold();
   renderRecentSales();
 }
 
