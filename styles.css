@@ -5092,3 +5092,182 @@ body {
     font-size: 1rem;
   }
 }
+
+/* ============================================
+   Financial Reports Section
+   ============================================ */
+
+.financial-reports {
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.reports-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.reports-period-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reports-period-btn {
+  padding: 8px 16px;
+  border: none;
+  background: var(--surface-light);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.reports-period-btn:hover {
+  background: var(--accent);
+  color: var(--text-primary);
+}
+
+.reports-period-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.reports-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.report-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  padding: 20px 25px;
+  color: white;
+}
+
+.report-card.report-margin {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+.report-card.report-expenses {
+  background: linear-gradient(135deg, #a569bd 0%, #9b59b6 100%);
+}
+
+.report-card.report-profit {
+  background: linear-gradient(135deg, #e91e8c 0%, #c2185b 100%);
+}
+
+.report-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.report-currency {
+  font-size: 1.5rem;
+  font-weight: 300;
+  opacity: 0.9;
+  margin-right: 8px;
+}
+
+.report-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 100px;
+  text-align: right;
+}
+
+.export-report-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--surface-light);
+  border: 2px dashed var(--text-secondary);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.export-report-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Responsive - Financial Reports */
+@media (max-width: 768px) {
+  .financial-reports {
+    padding: 20px 15px;
+  }
+
+  .reports-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .reports-period-toggle {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+
+  .reports-period-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .report-card {
+    padding: 15px 20px;
+  }
+
+  .report-label {
+    font-size: 1rem;
+  }
+
+  .report-currency {
+    font-size: 1.2rem;
+  }
+
+  .report-value {
+    font-size: 1.2rem;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .report-card {
+    padding: 12px 15px;
+  }
+
+  .report-label {
+    font-size: 0.9rem;
+  }
+
+  .report-value {
+    font-size: 1.1rem;
+  }
+}

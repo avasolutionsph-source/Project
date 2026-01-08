@@ -460,6 +460,38 @@
           </div>
         </div>
 
+        <!-- Financial Reports Section -->
+        <div class="financial-reports">
+          <div class="reports-header">
+            <h2>Financial Report</h2>
+            <div class="reports-period-toggle">
+              <button class="reports-period-btn active" data-period="today" onclick="changeReportsPeriod('today')">Today</button>
+              <button class="reports-period-btn" data-period="week" onclick="changeReportsPeriod('week')">This Week</button>
+              <button class="reports-period-btn" data-period="month" onclick="changeReportsPeriod('month')">This Month</button>
+              <button class="reports-period-btn" data-period="year" onclick="changeReportsPeriod('year')">This Year</button>
+              <button class="reports-period-btn" data-period="total" onclick="changeReportsPeriod('total')">All Time</button>
+            </div>
+          </div>
+          <div class="reports-cards">
+            <div class="report-card report-margin">
+              <div class="report-label">Margin</div>
+              <div class="report-currency">P</div>
+              <div class="report-value" id="report-margin-value">0.00</div>
+            </div>
+            <div class="report-card report-expenses">
+              <div class="report-label">Expenses</div>
+              <div class="report-currency">P</div>
+              <div class="report-value" id="report-expenses-value">0.00</div>
+            </div>
+            <div class="report-card report-profit">
+              <div class="report-label">Profit</div>
+              <div class="report-currency">P</div>
+              <div class="report-value" id="report-profit-value">0.00</div>
+            </div>
+          </div>
+          <button class="export-report-btn" onclick="exportFinancialReport()">EXPORT REPORT</button>
+        </div>
+
         <div class="recent-activity">
           <h2>Recent Sales</h2>
           <div class="activity-list">

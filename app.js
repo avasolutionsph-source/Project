@@ -708,6 +708,7 @@ const MONTH_NAMES = [
 // State for profit period selection
 let profitPeriod = 'today'; // 'today', 'week', 'month', 'year', 'total'
 let profitSoldPeriod = 'today'; // Separate period for profit by product section
+let reportsPeriod = 'today'; // Period for financial reports section
 
 // Calculate profit from transactions
 function getProfitDataFromTransactions() {
@@ -868,6 +869,159 @@ function changeProfitSoldPeriod(period) {
     btn.classList.toggle('active', btn.dataset.period === period);
   });
   updateProfitFromSold();
+}
+
+// Change reports period (for financial reports section)
+function changeReportsPeriod(period) {
+  reportsPeriod = period;
+  // Update button states
+  document.querySelectorAll('.reports-period-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === period);
+  });
+  updateFinancialReports();
+}
+
+// Get financial report data for the selected period
+function getFinancialReportData() {
+  const transactions = state.transactions;
+  const products = state.products;
+  const now = new Date();
+  const today = now.toDateString();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  // Create product lookup for cost prices
+  const productMap = {};
+  products.forEach(p => {
+    productMap[p.id] = {
+      costPrice: p.costPrice || 0,
+      kgPerSack: p.kgPerSack || 25,
+      piecesPerBox: p.piecesPerBox || 1
+    };
+  });
+
+  let totalRevenue = 0;
+  let totalCost = 0;
+
+  transactions.forEach(txn => {
+    const txnDate = new Date(txn.date);
+    const txnDateStr = txnDate.toDateString();
+
+    // Check if transaction is in selected period
+    let inPeriod = false;
+    if (reportsPeriod === 'today' && txnDateStr === today) inPeriod = true;
+    else if (reportsPeriod === 'week' && txnDate >= startOfWeek) inPeriod = true;
+    else if (reportsPeriod === 'month' && txnDate >= startOfMonth) inPeriod = true;
+    else if (reportsPeriod === 'year' && txnDate >= startOfYear) inPeriod = true;
+    else if (reportsPeriod === 'total') inPeriod = true;
+
+    if (!inPeriod) return;
+
+    // Process items in transaction
+    if (txn.items && Array.isArray(txn.items)) {
+      txn.items.forEach(item => {
+        const product = productMap[item.productId];
+        if (!product) return;
+
+        const costPrice = product.costPrice;
+        let itemCost = 0;
+        let itemRevenue = item.price || 0;
+
+        // Calculate cost based on sale type
+        if (item.kgAmount > 0) {
+          itemCost = costPrice * item.kgAmount;
+        } else if (item.sackAmount > 0) {
+          itemCost = costPrice * product.kgPerSack * item.sackAmount;
+        } else if (item.pieceAmount > 0) {
+          itemCost = costPrice * item.pieceAmount;
+        } else if (item.boxAmount > 0) {
+          itemCost = costPrice * product.piecesPerBox * item.boxAmount;
+        } else {
+          itemCost = costPrice * (item.quantity || 1);
+        }
+
+        totalRevenue += itemRevenue;
+        totalCost += itemCost;
+      });
+    }
+  });
+
+  // Margin = Revenue (total sales)
+  // Expenses = Cost of goods sold (COGS)
+  // Profit = Margin - Expenses
+  const margin = totalRevenue;
+  const expenses = totalCost;
+  const profit = margin - expenses;
+
+  return { margin, expenses, profit };
+}
+
+// Update financial reports display
+function updateFinancialReports() {
+  const data = getFinancialReportData();
+
+  const marginEl = document.getElementById('report-margin-value');
+  const expensesEl = document.getElementById('report-expenses-value');
+  const profitEl = document.getElementById('report-profit-value');
+
+  if (marginEl) marginEl.textContent = formatNumber(data.margin);
+  if (expensesEl) expensesEl.textContent = formatNumber(data.expenses);
+  if (profitEl) profitEl.textContent = formatNumber(data.profit);
+}
+
+// Export financial report
+function exportFinancialReport() {
+  const data = getFinancialReportData();
+  const periodLabels = {
+    today: 'Today',
+    week: 'This Week',
+    month: 'This Month',
+    year: 'This Year',
+    total: 'All Time'
+  };
+
+  const reportDate = new Date().toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const reportContent = `
+FINANCIAL REPORT
+================
+Store: ${localStorage.getItem('storeName') || 'FlyHighManarang'}
+Period: ${periodLabels[reportsPeriod]}
+Generated: ${reportDate}
+
+----------------------------------------
+SUMMARY
+----------------------------------------
+Margin (Revenue):    P ${formatNumber(data.margin)}
+Expenses (COGS):     P ${formatNumber(data.expenses)}
+----------------------------------------
+NET PROFIT:          P ${formatNumber(data.profit)}
+----------------------------------------
+
+Profit Margin: ${data.margin > 0 ? ((data.profit / data.margin) * 100).toFixed(1) : 0}%
+  `;
+
+  // Create and download text file
+  const blob = new Blob([reportContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `financial-report-${reportsPeriod}-${new Date().toISOString().split('T')[0]}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('Report exported successfully!');
 }
 
 // Get profit breakdown by product for the selected period
@@ -1093,6 +1247,7 @@ function initSalesOverview() {
   updateDashboardCards();
   updateProfitDisplay();
   updateProfitFromSold();
+  updateFinancialReports();
   renderRecentSales();
 }
 
@@ -1111,6 +1266,9 @@ function updateDashboardAfterSale() {
   // Update profit displays
   updateProfitDisplay();
   updateProfitFromSold();
+
+  // Update financial reports
+  updateFinancialReports();
 
   // Update recent sales list
   renderRecentSales();
