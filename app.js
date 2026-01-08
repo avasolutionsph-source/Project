@@ -705,6 +705,156 @@ const MONTH_NAMES = [
 // Dashboard Data Functions (Real Data from Transactions)
 // ============================================
 
+// State for profit period selection
+let profitPeriod = 'today'; // 'today', 'week', 'month', 'year', 'total'
+
+// Calculate profit from transactions
+function getProfitDataFromTransactions() {
+  const transactions = state.transactions;
+  const products = state.products;
+  const now = new Date();
+  const today = now.toDateString();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  // Create product lookup for cost prices
+  const productCostMap = {};
+  products.forEach(p => {
+    productCostMap[p.id] = p.costPrice || 0;
+  });
+
+  // Calculate profit for each period
+  let todayProfit = 0, todayRevenue = 0, todayCost = 0;
+  let weekProfit = 0, weekRevenue = 0, weekCost = 0;
+  let monthProfit = 0, monthRevenue = 0, monthCost = 0;
+  let yearProfit = 0, yearRevenue = 0, yearCost = 0;
+  let totalProfit = 0, totalRevenue = 0, totalCost = 0;
+
+  transactions.forEach(txn => {
+    const txnDate = new Date(txn.date);
+    const txnDateStr = txnDate.toDateString();
+
+    // Calculate cost for this transaction based on items
+    let txnCost = 0;
+    if (txn.items && Array.isArray(txn.items)) {
+      txn.items.forEach(item => {
+        const costPrice = productCostMap[item.productId] || 0;
+        // Calculate cost based on quantity sold
+        if (item.kgAmount > 0) {
+          // Feed sold by kg - costPrice is per kg
+          txnCost += costPrice * item.kgAmount;
+        } else if (item.sackAmount > 0) {
+          // Feed sold by sack - costPrice is per sack (assume same as selling ratio)
+          const product = products.find(p => p.id === item.productId);
+          const kgPerSack = product?.kgPerSack || 25;
+          txnCost += costPrice * kgPerSack * item.sackAmount;
+        } else if (item.pieceAmount > 0) {
+          // Non-feed sold by piece
+          txnCost += costPrice * item.pieceAmount;
+        } else if (item.boxAmount > 0) {
+          // Non-feed sold by box
+          const product = products.find(p => p.id === item.productId);
+          const piecesPerBox = product?.piecesPerBox || 1;
+          txnCost += costPrice * piecesPerBox * item.boxAmount;
+        } else {
+          // Fallback: use quantity
+          txnCost += costPrice * (item.quantity || 1);
+        }
+      });
+    }
+
+    const txnRevenue = txn.total || 0;
+    const txnProfit = txnRevenue - txnCost;
+
+    // Total (all-time)
+    totalRevenue += txnRevenue;
+    totalCost += txnCost;
+    totalProfit += txnProfit;
+
+    // This year
+    if (txnDate >= startOfYear) {
+      yearRevenue += txnRevenue;
+      yearCost += txnCost;
+      yearProfit += txnProfit;
+    }
+
+    // This month
+    if (txnDate >= startOfMonth) {
+      monthRevenue += txnRevenue;
+      monthCost += txnCost;
+      monthProfit += txnProfit;
+    }
+
+    // This week
+    if (txnDate >= startOfWeek) {
+      weekRevenue += txnRevenue;
+      weekCost += txnCost;
+      weekProfit += txnProfit;
+    }
+
+    // Today
+    if (txnDateStr === today) {
+      todayRevenue += txnRevenue;
+      todayCost += txnCost;
+      todayProfit += txnProfit;
+    }
+  });
+
+  return {
+    today: { profit: todayProfit, revenue: todayRevenue, cost: todayCost },
+    week: { profit: weekProfit, revenue: weekRevenue, cost: weekCost },
+    month: { profit: monthProfit, revenue: monthRevenue, cost: monthCost },
+    year: { profit: yearProfit, revenue: yearRevenue, cost: yearCost },
+    total: { profit: totalProfit, revenue: totalRevenue, cost: totalCost }
+  };
+}
+
+// Update profit display
+function updateProfitDisplay() {
+  const profitData = getProfitDataFromTransactions();
+  const data = profitData[profitPeriod];
+
+  const profitAmountEl = document.getElementById('profit-amount');
+  const profitRevenueEl = document.getElementById('profit-revenue');
+  const profitCostEl = document.getElementById('profit-cost');
+  const profitMarginEl = document.getElementById('profit-margin');
+
+  if (profitAmountEl) {
+    profitAmountEl.textContent = formatNumber(data.profit);
+    profitAmountEl.className = data.profit >= 0 ? 'profit-positive' : 'profit-negative';
+  }
+
+  if (profitRevenueEl) {
+    profitRevenueEl.textContent = `₱${formatNumber(data.revenue)}`;
+  }
+
+  if (profitCostEl) {
+    profitCostEl.textContent = `₱${formatNumber(data.cost)}`;
+  }
+
+  if (profitMarginEl) {
+    const margin = data.revenue > 0 ? ((data.profit / data.revenue) * 100).toFixed(1) : 0;
+    profitMarginEl.textContent = `${margin}%`;
+  }
+
+  // Update active button
+  document.querySelectorAll('.profit-period-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.period === profitPeriod) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+// Change profit period
+function changeProfitPeriod(period) {
+  profitPeriod = period;
+  updateProfitDisplay();
+}
+
 // Get sales data from real transactions
 function getSalesDataFromTransactions() {
   const transactions = state.transactions;
@@ -768,6 +918,7 @@ function initSalesOverview() {
   updateYearlySales(currentYear);
   updateAllTimeSales();
   updateDashboardCards();
+  updateProfitDisplay();
   renderRecentSales();
 }
 

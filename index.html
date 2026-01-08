@@ -392,6 +392,53 @@
           </div>
         </div>
 
+        <!-- Profit Overview Section -->
+        <div class="profit-overview">
+          <div class="profit-header">
+            <h2>Profit Overview</h2>
+            <div class="profit-period-toggle">
+              <button class="profit-period-btn active" data-period="today" onclick="changeProfitPeriod('today')">Today</button>
+              <button class="profit-period-btn" data-period="week" onclick="changeProfitPeriod('week')">This Week</button>
+              <button class="profit-period-btn" data-period="month" onclick="changeProfitPeriod('month')">This Month</button>
+              <button class="profit-period-btn" data-period="year" onclick="changeProfitPeriod('year')">This Year</button>
+              <button class="profit-period-btn" data-period="total" onclick="changeProfitPeriod('total')">All Time</button>
+            </div>
+          </div>
+          <div class="profit-cards">
+            <div class="profit-card profit-main">
+              <div class="profit-card-icon">PROFIT</div>
+              <div class="profit-card-content">
+                <span class="profit-label">Net Profit</span>
+                <span class="profit-amount-display">
+                  <span class="currency">P</span>
+                  <span id="profit-amount" class="profit-positive">0</span>
+                </span>
+              </div>
+            </div>
+            <div class="profit-card profit-revenue">
+              <div class="profit-card-icon">REVENUE</div>
+              <div class="profit-card-content">
+                <span class="profit-label">Total Revenue</span>
+                <span class="profit-value" id="profit-revenue">P0</span>
+              </div>
+            </div>
+            <div class="profit-card profit-cost">
+              <div class="profit-card-icon">COST</div>
+              <div class="profit-card-content">
+                <span class="profit-label">Total Cost</span>
+                <span class="profit-value" id="profit-cost">P0</span>
+              </div>
+            </div>
+            <div class="profit-card profit-margin">
+              <div class="profit-card-icon">MARGIN</div>
+              <div class="profit-card-content">
+                <span class="profit-label">Profit Margin</span>
+                <span class="profit-value" id="profit-margin">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="recent-activity">
           <h2>Recent Sales</h2>
           <div class="activity-list">

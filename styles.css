@@ -532,6 +532,198 @@ body {
   border-top: 3px solid var(--success);
 }
 
+/* ============================================
+   Profit Overview Section
+   ============================================ */
+
+.profit-overview {
+  margin-bottom: 30px;
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  border: 1px solid var(--surface-light);
+}
+
+.profit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.profit-header h2 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.profit-period-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profit-period-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--surface-light);
+  background: var(--surface-light);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.profit-period-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.profit-period-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.profit-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.profit-card {
+  background: var(--surface-light);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: var(--transition);
+}
+
+.profit-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.profit-card-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.profit-main .profit-card-icon {
+  background: linear-gradient(135deg, var(--success), #2ecc71);
+}
+
+.profit-revenue .profit-card-icon {
+  background: linear-gradient(135deg, var(--info), #5dade2);
+}
+
+.profit-cost .profit-card-icon {
+  background: linear-gradient(135deg, var(--warning), #f39c12);
+}
+
+.profit-margin .profit-card-icon {
+  background: linear-gradient(135deg, var(--primary), #e94560);
+}
+
+.profit-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.profit-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.profit-amount-display {
+  display: flex;
+  align-items: baseline;
+}
+
+.profit-amount-display .currency {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 3px;
+}
+
+#profit-amount {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.profit-positive {
+  color: var(--success);
+}
+
+.profit-negative {
+  color: var(--danger);
+}
+
+.profit-value {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .profit-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profit-period-toggle {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .profit-period-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .profit-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .profit-card {
+    padding: 15px;
+  }
+
+  .profit-card-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 0.6rem;
+  }
+
+  #profit-amount {
+    font-size: 1.4rem;
+  }
+
+  .profit-value {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .profit-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Recent Activity */
 .recent-activity h2 {
   margin-bottom: 20px;
