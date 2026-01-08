@@ -4538,11 +4538,36 @@ async function resetApp() {
   showLoading("Resetting application...");
 
   try {
+    // First, soft-delete all data from Supabase (if logged in)
+    try {
+      const storeId = await getStoreId();
+      if (storeId) {
+        const client = getSupabase();
+        if (client) {
+          const now = new Date().toISOString();
+          const tables = ['products', 'inventory', 'display', 'transactions', 'settings'];
+          
+          for (const table of tables) {
+            await client
+              .from(table)
+              .update({ deleted_at: now })
+              .eq('store_id', storeId)
+              .is('deleted_at', null);
+          }
+          console.log('[Reset] Soft-deleted all Supabase data for store');
+        }
+      }
+    } catch (supabaseError) {
+      console.warn('[Reset] Could not clear Supabase data:', supabaseError);
+      // Continue with local reset even if Supabase fails
+    }
+
     // Clear localStorage
     localStorage.removeItem('flyhigh_db_initialized');
     localStorage.removeItem('flyhigh_current_user');
     localStorage.removeItem('storeName');
     localStorage.removeItem('darkMode');
+    localStorage.removeItem('lastSyncTime');
 
     // Delete the entire Dexie database
     await db.delete();
