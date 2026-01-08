@@ -104,26 +104,25 @@ class SyncManager {
     this.isSyncing = true;
 
     try {
-      const tables = ['products', 'inventory', 'display', 'transactions'];
+      const tables = ['products', 'inventory', 'display', 'transactions', 'settings'];
 
       for (const table of tables) {
         const serverData = await fetchFromSupabase(table, this.lastSyncTime);
         console.log(`[SyncManager] Fetched ${serverData.length} records from ${table}`);
 
         for (const serverRecord of serverData) {
-          await this.mergeRecord(table, serverRecord);
+          if (table === 'settings') {
+            // Settings use 'key' as primary identifier
+            await db.settings.put({
+              key: serverRecord.key,
+              value: serverRecord.value,
+              supabaseId: serverRecord.id,
+              syncStatus: 'synced'
+            });
+          } else {
+            await this.mergeRecord(table, serverRecord);
+          }
         }
-      }
-
-      // Also pull settings
-      const settingsData = await fetchFromSupabase('settings', null);
-      for (const setting of settingsData) {
-        await db.settings.put({
-          key: setting.key,
-          value: setting.value,
-          supabaseId: setting.id,
-          syncStatus: 'synced'
-        });
       }
 
     } catch (error) {
@@ -315,6 +314,9 @@ class SyncManager {
         transactionDate: 'transaction_date',
         paymentMethod: 'payment_method',
         cashierId: 'cashier_id'
+      },
+      settings: {
+        // Settings use 'key' as identifier, value is JSON
       }
     };
 
@@ -456,6 +458,11 @@ async function deleteDisplayWithSync(id) {
   return await syncManager.writeLocal('display', existing, 'delete');
 }
 
+// Add inventory with sync (for creating new inventory records)
+async function addInventoryWithSync(inventoryItem) {
+  return await syncManager.writeLocal('inventory', inventoryItem, 'insert');
+}
+
 // Update inventory with sync
 async function updateInventoryWithSync(id, changes) {
   const existing = await db.inventory.get(id);
@@ -463,6 +470,30 @@ async function updateInventoryWithSync(id, changes) {
 
   const updated = { ...existing, ...changes };
   return await syncManager.writeLocal('inventory', updated, 'update');
+}
+
+// Delete inventory with sync
+async function deleteInventoryWithSync(id) {
+  const existing = await db.inventory.get(id);
+  if (!existing) return;
+
+  return await syncManager.writeLocal('inventory', existing, 'delete');
+}
+
+// Set setting with sync
+async function setSettingWithSync(key, value) {
+  const existing = await db.settings.get(key);
+  const setting = {
+    key,
+    value,
+    id: existing?.id || key // Use key as ID for settings
+  };
+
+  if (existing) {
+    return await syncManager.writeLocal('settings', { ...existing, value }, 'update');
+  } else {
+    return await syncManager.writeLocal('settings', setting, 'insert');
+  }
 }
 
 // ============================================

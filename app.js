@@ -513,7 +513,7 @@ async function syncProductsWithInventory() {
   for (const product of state.products) {
     const existingInventory = state.inventory.find(i => i.id === product.id);
     if (!existingInventory) {
-      // Create inventory record for this product
+      // Create inventory record for this product with sync support
       const newInventory = {
         id: product.id,
         name: product.name,
@@ -524,7 +524,7 @@ async function syncProductsWithInventory() {
         stockUnits: 0
       };
       state.inventory.push(newInventory);
-      await addInventory(newInventory);
+      await addInventoryWithSync(newInventory);
       console.log(`[Sync] Created inventory record for product: ${product.name}`);
     }
   }
@@ -661,10 +661,17 @@ function updateTime() {
 // Theme Toggle
 // ============================================
 
-function toggleTheme() {
+async function toggleTheme() {
   state.darkMode = !state.darkMode;
   localStorage.setItem("darkMode", state.darkMode);
   applyTheme();
+
+  // Sync dark mode setting to Supabase
+  try {
+    await setSettingWithSync('darkMode', state.darkMode);
+  } catch (error) {
+    console.error('[Settings] Failed to sync dark mode:', error);
+  }
 }
 
 // ============================================
@@ -3242,9 +3249,14 @@ async function deleteProduct(productId) {
     // Use sync-aware delete (handles Supabase sync)
     await deleteProductWithSync(productId);
 
-    // Also delete related inventory and display from local DB
-    await db.inventory.delete(productId);
-    await db.display.where('productId').equals(productId).delete();
+    // Delete related inventory with sync
+    await deleteInventoryWithSync(productId);
+
+    // Delete related display records with sync
+    const displayRecords = await db.display.where('productId').equals(productId).toArray();
+    for (const display of displayRecords) {
+      await deleteDisplayWithSync(display.id);
+    }
 
     renderProductsTable();
     renderProducts();
@@ -3410,11 +3422,22 @@ function closeEditProductModal() {
 // Settings Functions
 // ============================================
 
-function updateStoreName() {
+async function updateStoreNameSetting() {
   const newName = document.getElementById("store-name-input").value;
   state.storeName = newName;
   localStorage.setItem("storeName", newName);
   document.getElementById("store-name-display").textContent = newName;
+
+  // Sync store name setting to Supabase
+  try {
+    await setSettingWithSync('storeName', newName);
+    // Also update in Supabase stores table if available
+    if (typeof updateStoreName === 'function') {
+      await updateStoreName(newName);
+    }
+  } catch (error) {
+    console.error('[Settings] Failed to sync store name:', error);
+  }
 }
 
 // Reset Application - Clear all data
